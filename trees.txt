@@ -1,0 +1,130 @@
+
+Nature [ Decide P1 [ Decide P2 [ Nature [ Decide P2 [ Decide P1 [ Leaf (-1)
+                                                                , Leaf 1
+                                                                ]
+                                                    ]
+                                        , Decide P2 [ Decide P1 [ Leaf (-1)
+                                                                , Leaf (-1)
+                                                                ]
+                                                         ]
+                                        ]
+                               , Leaf 1
+                               ]
+                   , Decide P2 [ Leaf 1
+                               , Leaf (-1)
+                               ]
+                   ]
+       , Decide P1 [ Decide P2 [ Leaf 1
+                               , Leaf 1
+                               ]
+                   ]
+       ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Nature [ Decide P1 [ Decide P2 [ Nature [ Decide P2 [ Decide P1 [ Nature [ Decide P1 [ Decide P2 [ Leaf 1
+                                                                                                 , Leaf (-1)
+                                                                                                 ]
+                                                                                     ]
+                                                                         , Decide P1 [ Decide P2 [ Leaf 1
+                                                                                                 , Leaf (-1)
+                                                                                                 ]
+                                                                                     ]
+                                                                         , Decide P1 [ Decide P2 [ Leaf 1
+                                                                                                 , Leaf 1
+                                                                                                 ]
+                                                                                     ]
+                                                                         ]
+                                                                , Leaf 1
+                                                                ]
+                                                    , Decide P1 [ Leaf (-1)
+                                                                , Leaf 1
+                                                                ]
+                                                    ]
+                                        , Decide P2 [ Decide P1 [ Nature [ Decide P1 [ Decide P2 [ Leaf 1
+                                                                                                 , Leaf (-1)
+                                                                                                 ]
+                                                                                     ]
+                                                                         , Decide P1 [ Decide P2 [ Leaf 1
+                                                                                                 , Leaf (-1)
+                                                                                                 ]
+                                                                                     ]
+                                                                         , Decide P1 [ Decide P2 [ Leaf 1
+                                                                                                 , Leaf 1
+                                                                                                 ]
+                                                                                     ]
+                                                                         ]
+                                                                , Leaf (-1)
+                                                                ]
+                                                    , Decide P1 [ Leaf (-1)
+                                                                , Leaf 1
+                                                                ]
+                                                    ]
+                                        , Decide P2 [ Decide P1 [ Leaf (-1)
+                                                                , Leaf (-1)
+                                                                ]
+                                                    ]
+                                        ]
+                               , Leaf 1
+                               ]
+                   , Decide P2 [ Nature [ Decide P2 [ Decide P1 [ Leaf (-1)
+                                                                ,Leaf 1
+                                                                ]
+                                                    ] 
+                                        , Decide P2 [ Decide P1 [ Leaf (-1)
+                                                                ,Leaf 1
+                                                                ]
+                                                    ] 
+                                        , Decide P2 [ Decide P1 [ Leaf (-1)
+                                                                , Leaf (-1)
+                                                                ]
+                                                    ]
+                                        ]
+                               , Leaf (-1)
+                               ]
+                   , Decide P2 [ Leaf 1
+                               , Leaf (-1)
+                               ]
+                   ]
+       , Decide P1 [ Decide P2 [ Nature [ Decide P2 [ Decide P1 [ Leaf (-1)
+                                                                , Leaf 1
+                                                                ]
+                                                    ]
+                                        , Decide P2 [ Decide P1 [ Leaf (-1)
+                                                                , Leaf 1
+                                                                ]
+                                                    ]
+                                        , Decide P2 [ Decide P1 [ Leaf (-1)
+                                                                , Leaf (-1)
+                                                                ]
+                                                    ]
+                                        ]
+                                , Leaf 1
+                                ]
+                   , Decide P2 [ Leaf 1
+                               , Leaf (-1)
+                               ]
+                   ]
+       , Decide P1 [ Decide P2 [ Leaf 1
+                               , Leaf 1
+                               ]
+                   ]
+       ]
