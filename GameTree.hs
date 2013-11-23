@@ -1,6 +1,7 @@
 module GameTree where
 
 import Data.Map (Map)
+import Data.Tuple (swap)
 import qualified Data.Map as M
 import Control.Arrow (second)
 
@@ -55,9 +56,10 @@ lastSaid (e:_) = said e
 -- | Create a history view for given player.
 --
 historyView :: Player -> History -> HistoryView
-historyView p = zipWith ($) (help funcs) . reverse
-  where help = if p == P1 then id else tail
-        funcs = concat $ repeat [Performed, Heard . said]
+historyView p = go $ (if p == P1 then id else swap) (Performed, Heard . said)
+  where
+    go _     []     = []
+    go (f,g) (e:es) = f e : go (g,f) es
 
 -- | For dice with `k` sides compute game tree.
 --
