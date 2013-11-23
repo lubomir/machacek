@@ -1,5 +1,6 @@
 module GameTree where
 
+import Data.List (foldl')
 import Data.Map (Map)
 import Data.Tuple (swap)
 import qualified Data.Map as M
@@ -112,15 +113,17 @@ decIndent (x,y,n) = (x,y,n-indentWidth)
 showTree :: GameTree -> String
 showTree = concat . fst . go (1, M.empty, 0)
   where
-    go :: (Int, InformationSets Int, Int) -> GameTree -> ([String], (Int, InformationSets Int, Int))
-    go acc l@(Leaf _)       = (indent acc [show l, "\n"], acc)
-    go acc (Nature ts)=
-        second decIndent $ foldl walkChildren (indent acc ["Nature\n"], incIndent acc)
+    go :: (Int, InformationSets Int, Int)
+       -> GameTree
+       -> ([String], (Int, InformationSets Int, Int))
+    go acc l@(Leaf _)  = (indent acc [show l, "\n"], acc)
+    go acc (Nature ts) =
+        second decIndent $ foldl' walkChildren (indent acc ["Nature\n"], incIndent acc)
                          $ map snd ts
     go acc@(i,s,ind) (Decide hv p ts)
         = let (id_,newS,newI) = getSet i hv s
               str = indent acc ["Decide ",show id_," ",show p,"\n"]
-          in second decIndent $ foldl walkChildren (str, incIndent (newI,newS,ind)) ts
+          in second decIndent $ foldl' walkChildren (str, incIndent (newI,newS,ind)) ts
 
     walkChildren :: ([String], (Int, InformationSets Int, Int))
                  -> GameTree
