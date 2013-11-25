@@ -6,7 +6,7 @@ import qualified Data.Map   as M
 import           Data.Maybe (fromMaybe, fromJust)
 import           Data.Tuple (swap)
 import Data.Array
-import Control.Arrow
+import Control.Arrow (first, second)
 
 data Player = P1 | P2
     deriving (Eq, Ord, Show)
@@ -133,7 +133,7 @@ getSequence p = fromMaybe [] . M.lookup p
 
 mkActions :: GameTree -> (InformationSets [Act], [(Sequence, Sequence, Double)])
 mkActions tree = let res = go 1 M.empty (LA ([1..], [1..]) M.empty []) tree
-                in (assigned res, matrix res)
+                 in (assigned res, matrix res)
   where
     go :: Double -> SeqPair -> LoopAcc -> GameTree -> LoopAcc
     go p sp acc (Nature ts) = foldl' natHelper acc ts
@@ -150,11 +150,14 @@ mkActions tree = let res = go 1 M.empty (LA ([1..], [1..]) M.empty []) tree
         decHelper :: LoopAcc -> (Act, GameTree) -> LoopAcc
         decHelper acc (a,t) = go p (addAct pl a sp) acc t
 
-mkMatrix :: [(Sequence, Sequence, Double)] -> Array (Int, Int) Double
-mkMatrix ts = let (xs', ys', _) = unzip3 ts
-                  xMap = flip zip [(1::Int)..] $ sort $ nub xs'
-                  yMap = flip zip [(1::Int)..] $ sort $ nub ys'
-                  nullArray = listArray ((1,1),(length xMap,length yMap)) [(0::Double)..]
-               in nullArray // map (\(x,y,p) -> ((ml x xMap,ml y yMap), p)) ts
+
+mkPayoffMatrix :: [(Sequence, Sequence, Double)] -> Array (Int, Int) Double
+mkPayoffMatrix ts = let (xs', ys', _) = unzip3 ts
+                        xMap = flip zip [(1::Int)..] $ sort $ nub xs'
+                        yMap = flip zip [(1::Int)..] $ sort $ nub ys'
+                        nullArray = listArray ((0,0),(length xMap,length yMap)) $ repeat 0
+                    in foldl' upd nullArray $ map (\(x,y,p) -> ((ml x xMap,ml y yMap), p)) ts
   where
     ml = (fromJust.) . lookup
+    upd :: Array (Int,Int) Double -> ((Int,Int),Double) -> Array (Int,Int) Double
+    upd arr (i,p) = arr // [(i,p+arr ! i)]
