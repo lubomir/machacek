@@ -167,7 +167,7 @@ getSequenceMap ts = let (xs', ys', _) = unzip3 ts
 
 mkPayoffMatrix :: [(Sequence, Sequence, Double)] -> Array (Int, Int) Double
 mkPayoffMatrix ts = let (xMap, yMap) = getSequenceMap ts
-                        nullArray = listArray ((0,0),(length xMap,length yMap)) $ repeat 0
+                        nullArray = listArray ((1,1),(length xMap,length yMap)) $ repeat 0
                     in foldl' upd nullArray $ map (\(x,y,p) -> ((ml x xMap,ml y yMap), p)) ts
   where
     ml = (fromJust.) . lookup
