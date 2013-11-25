@@ -3,3 +3,5 @@
 *.swp
 *.swo
 Main
+.cabal-sandbox
+dist
