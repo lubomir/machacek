@@ -1,10 +1,11 @@
 module GameTree where
 
-import           Data.List  (foldl')
+import           Data.List  (foldl', nub, sort)
 import           Data.Map   (Map)
 import qualified Data.Map   as M
-import           Data.Maybe (fromMaybe)
+import           Data.Maybe (fromMaybe, fromJust)
 import           Data.Tuple (swap)
+import Data.Array
 import Control.Arrow
 
 data Player = P1 | P2
@@ -130,8 +131,8 @@ addAct p a = M.insertWith (++) p [a]
 getSequence :: Player -> SeqPair -> Sequence
 getSequence p = fromMaybe [] . M.lookup p
 
-mkMatrix :: GameTree -> (InformationSets [Act], [(Sequence, Sequence, Double)])
-mkMatrix tree = let res = go 1 M.empty (LA ([1..], [1..]) M.empty []) tree
+mkActions :: GameTree -> (InformationSets [Act], [(Sequence, Sequence, Double)])
+mkActions tree = let res = go 1 M.empty (LA ([1..], [1..]) M.empty []) tree
                 in (assigned res, matrix res)
   where
     go :: Double -> SeqPair -> LoopAcc -> GameTree -> LoopAcc
@@ -148,3 +149,12 @@ mkMatrix tree = let res = go 1 M.empty (LA ([1..], [1..]) M.empty []) tree
         (acts, acc') = getActs pl acc'' (length ts) hv
         decHelper :: LoopAcc -> (Act, GameTree) -> LoopAcc
         decHelper acc (a,t) = go p (addAct pl a sp) acc t
+
+mkMatrix :: [(Sequence, Sequence, Double)] -> Array (Int, Int) Double
+mkMatrix ts = let (xs', ys', _) = unzip3 ts
+                  xMap = flip zip [(1::Int)..] $ sort $ nub xs'
+                  yMap = flip zip [(1::Int)..] $ sort $ nub ys'
+                  nullArray = listArray ((1,1),(length xMap,length yMap)) [(0::Double)..]
+               in nullArray // map (\(x,y,p) -> ((ml x xMap,ml y yMap), p)) ts
+  where
+    ml = (fromJust.) . lookup
