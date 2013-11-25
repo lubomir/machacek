@@ -5,7 +5,6 @@ import           Data.Map   (Map)
 import qualified Data.Map   as M
 import           Data.Maybe (fromMaybe, fromJust)
 import           Data.Tuple (swap)
-import Data.Array
 import Control.Arrow (first, second)
 
 data Player = P1 | P2
@@ -165,14 +164,12 @@ getSequenceMap ts = let (xs', ys', _) = unzip3 ts
                     in (xMap, yMap)
 
 
-mkPayoffMatrix :: [(Sequence, Sequence, Double)] -> Array (Int, Int) Double
-mkPayoffMatrix ts = let (xMap, yMap) = getSequenceMap ts
-                        nullArray = listArray ((1,1),(length xMap,length yMap)) $ repeat 0
-                    in foldl' upd nullArray $ map (\(x,y,p) -> ((ml x xMap,ml y yMap), p)) ts
+mkPayoffMatrix :: [(Sequence, Sequence, Double)] -> [[Double]]
+mkPayoffMatrix ts = [[ val x y | y <- [1..length yMap]] | x <- [1..length xMap]]
   where
+    (xMap, yMap) = getSequenceMap ts
     ml = (fromJust.) . lookup
-    upd :: Array (Int,Int) Double -> ((Int,Int),Double) -> Array (Int,Int) Double
-    upd arr (i,p) = arr // [(i,p+arr ! i)]
+    val x y = sum $ map (\(_,_,p) -> p) $ filter (\(a,b,_) -> ml a xMap == x && ml b yMap == y) ts
 
 mkConstraintMatrix :: Player                            -- ^Player we are interested in
                    -> [(Sequence,Int)]                  -- ^This players' actions mapping
