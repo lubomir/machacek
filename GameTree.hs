@@ -160,8 +160,8 @@ mkActions tree = let res = go 1 M.empty (LA ([1..], [1..]) M.empty []) tree
 
 getSequenceMap :: [(Sequence, Sequence, Double)] -> ([(Sequence,Int)],[(Sequence,Int)])
 getSequenceMap ts = let (xs', ys', _) = unzip3 ts
-                        xMap = flip zip [0..] $ sort $ nub $ sort $ concatMap tails $ xs'
-                        yMap = flip zip [0..] $ sort $ nub $ sort $ concatMap tails $ ys'
+                        xMap = flip zip [0..] $ sort $ nub $ sort $ concatMap tails xs'
+                        yMap = flip zip [0..] $ sort $ nub $ sort $ concatMap tails ys'
                     in (xMap, yMap)
 
 
@@ -181,9 +181,9 @@ mkConstraintMatrix :: Player                            -- ^Player we are intere
 mkConstraintMatrix p m is = (1:replicate (len-1) 0) : map toEq sets
   where
     sets = filter ((`viewBelongsTo` p) . fst) $ M.toList is
-    len = 1 + length (nub $ concatMap (snd . snd) sets)
-    toEq (_k,(s,as)) = mkRow (ml s) (map (ml . (:s)) as)
+    len  = 1 + length (nub $ concatMap (snd . snd) sets)
     ml s = fromJust $ lookup s m
+    toEq (_k,(s,as)) = mkRow (ml s) (map (ml . (:s)) as)
 
     mkRow :: Int -> [Int] -> [Double]
     mkRow x vs = reverse (go [] 0 vs)
