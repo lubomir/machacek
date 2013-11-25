@@ -92,18 +92,26 @@ mkTree k = rollDice [] P1
       | otherwise          = Leaf $ payoffFor p
     call _ _ = error "This can never happen"
 
-data LoopAcc = LA { pool     :: [Act]
+data LoopAcc = LA { pool     :: ([Act], [Act])
                   , assigned :: InformationSets [Act]
                   , matrix   :: [(Sequence, Sequence, Double)]
                   }
 
-getActs :: LoopAcc -> Int -> HistoryView -> ([Act], LoopAcc)
-getActs la n hv = case M.lookup hv (assigned la) of
-                    Nothing   -> let acts = take n $ pool la
-                                 in (acts, la { assigned = M.insert hv acts (assigned la)
-                                              , pool = drop n $ pool la
-                                              })
-                    Just acts -> (acts, la)
+getActsFor :: Int -> Player -> LoopAcc -> ([Act], ([Act], [Act]))
+getActsFor n P1 la = let p = pool la
+                         (pf,sf) = splitAt n $ fst p
+                     in (pf, (sf, snd p))
+getActsFor n P2 la = let p = pool la
+                         (pf,sf) = splitAt n $ snd p
+                     in (pf, (fst p, sf))
+
+getActs :: Player -> LoopAcc -> Int -> HistoryView -> ([Act], LoopAcc)
+getActs p la n hv = case M.lookup hv (assigned la) of
+                      Nothing   -> let (acts, pool') = getActsFor n p la
+                                   in (acts, la { assigned = M.insert hv acts (assigned la)
+                                                , pool = pool'
+                                                })
+                      Just acts -> (acts, la)
 
 type Sequence = [Act]
 type SeqPair = M.Map Player Sequence
@@ -115,7 +123,7 @@ getSequence :: Player -> SeqPair -> Sequence
 getSequence p = fromMaybe [] . M.lookup p
 
 mkMatrix :: GameTree -> (InformationSets [Act], [(Sequence, Sequence, Double)])
-mkMatrix tree = let res = go 1 M.empty (LA [1..] M.empty []) tree
+mkMatrix tree = let res = go 1 M.empty (LA ([1..], [1..]) M.empty []) tree
                 in (assigned res, matrix res)
   where
     go :: Double -> SeqPair -> LoopAcc -> GameTree -> LoopAcc
@@ -129,6 +137,6 @@ mkMatrix tree = let res = go 1 M.empty (LA [1..] M.empty []) tree
 
     go p sp acc'' (Decide hv pl ts) = foldl' decHelper acc' $ zip acts ts
       where
-        (acts, acc') = getActs acc'' (length ts) hv
+        (acts, acc') = getActs pl acc'' (length ts) hv
         decHelper :: LoopAcc -> (Act, GameTree) -> LoopAcc
         decHelper acc (a,t) = go p (addAct pl a sp) acc t
