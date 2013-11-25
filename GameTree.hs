@@ -1,16 +1,19 @@
+{-# LANGUAGE DeriveGeneric #-}
 module GameTree where
 
 import Data.List (foldl')
 import Data.Map (Map)
 import Data.Tuple (swap)
+import Data.Maybe
 import qualified Data.Map as M
 import Control.Arrow (second)
 
 data Player = P1 | P2
-    deriving (Eq, Show)
+    deriving (Eq, Ord, Show)
 
 type Probability = Double
-type Payoff = Int
+type Payoff = Double
+type Act = Int
 
 data HistoryEvent = HE { rolled :: Int  -- ^Actual value on the dice
                        , said :: Int    -- ^What player said
@@ -90,6 +93,53 @@ mkTree k = rollDice [] P1
       | rolled e == said e = Leaf $ payoffFor $ otherPlayer p
       | otherwise          = Leaf $ payoffFor p
     call _ _ = error "This can never happen"
+
+data LoopAcc = LA { pool     :: [Act]
+                  , assigned :: InformationSets [Act]
+                  , matrix   :: [(Sequence, Sequence, Double)]
+                  }
+
+getActs :: LoopAcc -> Int -> HistoryView -> ([Act], LoopAcc)
+getActs la n hv = case M.lookup hv (assigned la) of
+                    Nothing   -> let acts = take n $ pool la
+                                 in (acts, la { assigned = M.insert hv acts (assigned la)
+                                              , pool = drop n $ pool la
+                                              })
+                    Just acts -> (acts, la)
+
+type Sequence = [Act]
+type SeqPair = M.Map Player Sequence
+
+initData :: LoopAcc
+initData = LA [1..] M.empty []
+
+emptySeq :: SeqPair
+emptySeq = M.fromList [(P1, []), (P2, [])]
+
+addAct :: Player -> Act -> SeqPair -> SeqPair
+addAct p a = M.adjust (a:) p
+
+getSequence :: Player -> SeqPair -> Sequence
+getSequence p = fromMaybe [] . M.lookup p
+
+mkMatrix :: GameTree -> (InformationSets [Act], [(Sequence, Sequence, Double)])
+mkMatrix tree = let res = go 1 emptySeq initData tree
+                in (assigned res, matrix res)
+  where
+    go :: Double -> SeqPair -> LoopAcc -> GameTree -> LoopAcc
+    go p sp acc (Nature ts) = foldl' natHelper acc ts
+      where
+        natHelper :: LoopAcc -> (Probability, GameTree) -> LoopAcc
+        natHelper acc' (p',t) = go (p * p') sp acc' t
+
+    go p sp acc (Leaf x) = let val = (getSequence P1 sp, getSequence P2 sp, p * x)
+                           in acc { matrix = val : matrix acc }
+
+    go p sp acc'' (Decide hv pl ts) = foldl' decHelper acc' $ zip acts ts
+      where
+        (acts, acc') = getActs acc'' (length ts) hv
+        decHelper :: LoopAcc -> (Act, GameTree) -> LoopAcc
+        decHelper acc (a,t) = go p (addAct pl a sp) acc t
 
 
 getSet :: Int -> HistoryView -> InformationSets Int -> (Int,InformationSets Int,Int)
