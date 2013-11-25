@@ -5,6 +5,7 @@ import           Data.Map   (Map)
 import qualified Data.Map   as M
 import           Data.Maybe (fromMaybe)
 import           Data.Tuple (swap)
+import Control.Arrow
 
 data Player = P1 | P2
     deriving (Eq, Ord, Show)
@@ -97,17 +98,24 @@ data LoopAcc = LA { pool     :: ([Act], [Act])
                   , matrix   :: [(Sequence, Sequence, Double)]
                   }
 
-getActsFor :: Int -> Player -> LoopAcc -> ([Act], ([Act], [Act]))
-getActsFor n P1 la = let p = pool la
-                         (pf,sf) = splitAt n $ fst p
-                     in (pf, (sf, snd p))
-getActsFor n P2 la = let p = pool la
-                         (pf,sf) = splitAt n $ snd p
-                     in (pf, (fst p, sf))
+getActsFor :: Int                       -- ^How many actions we want
+           -> Player                    -- ^Whose actions we want
+           -> ([Act], [Act])            -- ^Pool of actions
+           -> ([Act], ([Act], [Act]))   -- ^(wanted actions, new pool)
+getActsFor n P1 = (\((a,b),c) -> (a,(b,c))) . first  (splitAt n)
+getActsFor n P2 = (\(a,(b,c)) -> (b,(a,c))) . second (splitAt n)
 
-getActs :: Player -> LoopAcc -> Int -> HistoryView -> ([Act], LoopAcc)
+-- | Get actions for given player and his view of history. If the actions do
+-- not exist yet, draw new actions from pool and assign them to information
+-- set given by this history view.
+--
+getActs :: Player           -- ^Whose actions we want
+        -> LoopAcc          -- ^Current loop state
+        -> Int              -- ^How many actions we want
+        -> HistoryView      -- ^Where to store the actions
+        -> ([Act], LoopAcc) -- ^(wanted actions, neww loop state)
 getActs p la n hv = case M.lookup hv (assigned la) of
-                      Nothing   -> let (acts, pool') = getActsFor n p la
+                      Nothing   -> let (acts, pool') = getActsFor n p $ pool la
                                    in (acts, la { assigned = M.insert hv acts (assigned la)
                                                 , pool = pool'
                                                 })
