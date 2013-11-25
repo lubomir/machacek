@@ -57,7 +57,7 @@ lastSaid (e:_) = said e
 -- | Create a history view for given player.
 --
 historyView :: Player -> History -> HistoryView
-historyView p = go $ (if p == P1 then id else swap) (Performed, Heard . said)
+historyView p = go ((if p == P1 then id else swap) (Performed, Heard . said)) . reverse
   where
     go _     []     = []
     go (f,g) (e:es) = f e : go (g,f) es
