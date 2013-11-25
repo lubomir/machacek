@@ -3,7 +3,7 @@ module Main where
 import           GameTree
 
 import           Control.Arrow      (second)
-import           Data.List          (foldl')
+import           Data.List          (foldl', intercalate)
 import qualified Data.Map           as M
 import           System.Environment
 
@@ -44,6 +44,11 @@ showTree = concat . fst . go (1, M.empty, 0)
                  -> ([String], (Int, InformationSets Int, Int))
     walkChildren (have, acc) t = let (str, newAcc) = go acc t
                                  in (have ++ str, newAcc)
+
+printConstraintMatrix :: [[Double]] -> IO ()
+printConstraintMatrix = mapM_ printRow
+  where
+    printRow = putStrLn . intercalate "\t". map show
 
 main :: IO ()
 main = do
