@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
 module GameTree where
 
 import Data.List (foldl')
@@ -110,20 +109,14 @@ getActs la n hv = case M.lookup hv (assigned la) of
 type Sequence = [Act]
 type SeqPair = M.Map Player Sequence
 
-initData :: LoopAcc
-initData = LA [1..] M.empty []
-
-emptySeq :: SeqPair
-emptySeq = M.fromList [(P1, []), (P2, [])]
-
 addAct :: Player -> Act -> SeqPair -> SeqPair
-addAct p a = M.adjust (a:) p
+addAct p a = M.insertWith (++) p [a]
 
 getSequence :: Player -> SeqPair -> Sequence
 getSequence p = fromMaybe [] . M.lookup p
 
 mkMatrix :: GameTree -> (InformationSets [Act], [(Sequence, Sequence, Double)])
-mkMatrix tree = let res = go 1 emptySeq initData tree
+mkMatrix tree = let res = go 1 M.empty (LA [1..] M.empty []) tree
                 in (assigned res, matrix res)
   where
     go :: Double -> SeqPair -> LoopAcc -> GameTree -> LoopAcc
