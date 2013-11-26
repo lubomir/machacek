@@ -1,6 +1,6 @@
 module GameTree where
 
-import           Data.List  (foldl', nub, sort, tails)
+import           Data.List  (foldl', nub, sort, tails, transpose, intercalate)
 import           Data.Map   (Map)
 import qualified Data.Map   as M
 import           Data.Maybe (fromMaybe, fromJust)

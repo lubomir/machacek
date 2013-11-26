@@ -1,56 +1,44 @@
 module Main where
 
+import           Algebra
 import           GameTree
 
-import           Control.Arrow      (second)
-import           Data.List          (foldl', intercalate)
-import qualified Data.Map           as M
+import           Data.List          (intercalate)
+import           Data.Matrix
+import qualified Data.Vector        as V
 import           System.Environment
 
-getSet :: Int -> HistoryView -> InformationSets Int -> (Int,InformationSets Int,Int)
-getSet new hv set = case M.lookup hv set of
-                        Nothing  -> (new, M.insert hv new set, new + 1)
-                        Just id' -> (id', set, new)
+run :: Int -> IO ()
+run k = do
+    let (acts, seqs) = mkActions $ mkTree k
+        (xMap, yMap) = getSequenceMap seqs
+        payoffMatrix = toMatrixD $ mkPayoffMatrix seqs
+        matE = toMatrixD $ mkConstraintMatrix P1 xMap acts
+        matF = toMatrixD $ mkConstraintMatrix P2 yMap acts
+        vecE = transpose $ toMatrixD [1:replicate (nrows matE - 1) 0]
+        vecF = transpose $ toMatrixD [1:replicate (nrows matF - 1) 0]
+        xNames = map (('x':).show) [1..nrows payoffMatrix]
+        zNames = map (('z':).show) [1..nrows matF]
+        xs = transpose $ toMatrixS [xNames]
+        zs = transpose $ toMatrixS [zNames]
 
-indent :: (a, InformationSets b, Int) -> [String] -> [String]
-indent (_,_,n) = (replicate n '\t' :)
-
-indentWidth :: Int
-indentWidth = 1
-
-incIndent :: (a,InformationSets b,Int) -> (a,InformationSets b,Int)
-incIndent (x,y,n) = (x,y,n+indentWidth)
-
-decIndent :: (a,InformationSets b,Int) -> (a,InformationSets b,Int)
-decIndent (x,y,n) = (x,y,n-indentWidth)
-
-showTree :: GameTree -> String
-showTree = concat . fst . go (1, M.empty, 0)
+    maximize $ multStd (transpose vecF) zs
+    constrain "=" (multStd matE xs) vecE
+    constrain "<=" (multStd (transpose matF) zs) (transpose payoffMatrix `multStd` xs)
+    nonNeg xNames
+    declare "sec" xNames
+    declare "free" zNames
   where
-    go :: (Int, InformationSets Int, Int)
-       -> GameTree
-       -> ([String], (Int, InformationSets Int, Int))
-    go acc l@(Leaf _)  = (indent acc [show l, "\n"], acc)
-    go acc (Nature ts) =
-        second decIndent $ foldl' walkChildren (indent acc ["Nature\n"], incIndent acc)
-                         $ map snd ts
-    go acc@(i,s,ind) (Decide hv p ts)
-        = let (id_,newS,newI) = getSet i hv s
-              str = indent acc ["Decide ",show id_," ",show p,"\n"]
-          in second decIndent $ foldl' walkChildren (str, incIndent (newI,newS,ind)) ts
-
-    walkChildren :: ([String], (Int, InformationSets Int, Int))
-                 -> GameTree
-                 -> ([String], (Int, InformationSets Int, Int))
-    walkChildren (have, acc) t = let (str, newAcc) = go acc t
-                                 in (have ++ str, newAcc)
-
-printConstraintMatrix :: [[Double]] -> IO ()
-printConstraintMatrix = mapM_ printRow
-  where
-    printRow = putStrLn . intercalate "\t". map show
+    maximize e = putStrLn $ concat ["max: ", toStr $ e ! (1,1), ";"]
+    constrain op lhs rhs = mapM_ go [1..nrows lhs]
+      where
+        go i = let l = i `getRow` lhs
+                   r = i `getRow` rhs
+               in putStrLn $ concat [toStr $ V.head l, " ", op, " ", toStr $ V.head r, ";"]
+    nonNeg = mapM_ (\v -> putStrLn $ v ++ " >= 0;")
+    declare t vs = putStrLn $ t ++ " " ++ intercalate ", " vs ++ ";"
 
 main :: IO ()
 main = do
     [arg] <- getArgs
-    putStr $ showTree $ mkTree $ read arg
+    run $ read arg
