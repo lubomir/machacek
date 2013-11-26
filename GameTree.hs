@@ -1,11 +1,11 @@
 module GameTree where
 
-import           Data.List  (foldl', nub, sort, tails, transpose, intercalate)
-import           Data.Map   (Map)
-import qualified Data.Map   as M
-import           Data.Maybe (fromMaybe, fromJust)
-import           Data.Tuple (swap)
-import Control.Arrow (first, second)
+import           Control.Arrow (first, second)
+import           Data.List     (foldl', nub, sort, tails)
+import           Data.Map      (Map)
+import qualified Data.Map      as M
+import           Data.Maybe    (fromJust, fromMaybe)
+import           Data.Tuple    (swap)
 
 data Player = P1 | P2
     deriving (Eq, Ord, Show)
