@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances #-}
 module Algebra where
 
 import qualified Data.Map    as M
@@ -5,7 +6,7 @@ import           Data.Matrix
 import           Text.Printf
 
 data Expr a = Expr a (M.Map String a)
-    deriving (Eq, Ord, Show)
+    deriving (Eq, Ord)
 
 instance Num a => Num (Expr a) where
     (Expr c1 vs1) + (Expr c2 vs2) = Expr (c1+c2) $ M.unionWith (+) vs1 vs2
@@ -34,6 +35,9 @@ toStr (Expr c vars) = addC c $ go "" $ M.toList vars
       | n == -1   = ' ':'-':' ':v
       | n < 0     = concat [" - ", p (-n), "*", v]
       | otherwise = concat [" + ", p n, "*", v]
+
+instance Show (Expr Double) where
+    show = toStr
 
 toMatrixD :: [[Double]] -> Matrix (Expr Double)
 toMatrixD = fromLists . map (map (`Expr` M.empty))
