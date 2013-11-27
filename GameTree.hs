@@ -2,13 +2,15 @@ module GameTree where
 
 import           Algebra
 
-import           Control.Arrow (first, second)
-import           Data.List     (foldl', nub, sort, tails)
-import           Data.Map      (Map)
-import qualified Data.Map      as M
-import           Data.Matrix   (Matrix)
-import           Data.Maybe    (fromJust, fromMaybe)
-import           Data.Tuple    (swap)
+import           Control.Arrow                  (first, second)
+import           Data.List                      (foldl', nub, sort, tails)
+import qualified Data.ListTrie.Patricia.Map     as T
+import           Data.ListTrie.Patricia.Map.Ord (TrieMap)
+import           Data.Map                       (Map)
+import qualified Data.Map                       as M
+import           Data.Matrix                    (Matrix)
+import           Data.Maybe                     (fromJust, fromMaybe)
+import           Data.Tuple                     (swap)
 
 data Player = P1 | P2
     deriving (Eq, Ord, Show)
@@ -160,28 +162,29 @@ mkActions tree = let res = go 1 M.empty (LA ([1..], [1..]) M.empty []) tree
         decHelper acc (a,t) = go p (addAct pl a sp) acc t
 
 
-getSequenceMap :: [(Sequence, Sequence, Double)] -> (Map Sequence Int,Map Sequence Int)
+getSequenceMap :: [(Sequence, Sequence, Double)]
+               -> (TrieMap Act Int, TrieMap Act Int)
 getSequenceMap ts = let (xs', ys', _) = unzip3 ts
                     in (buildMap xs', buildMap ys')
   where
-    buildMap = M.fromList . flip zip [0..] . sort . nub . concatMap tails
+    buildMap = T.fromList . flip zip [0..] . sort . nub . concatMap tails
 
 mkPayoffMatrix :: [(Sequence, Sequence, Double)] -> Matrix (Expr Double)
-mkPayoffMatrix ps = buildMatrix (M.size xMap) (M.size yMap) $ map unpack ps
+mkPayoffMatrix ps = buildMatrix (T.size xMap) (T.size yMap) $ map unpack ps
   where
     (xMap, yMap) = getSequenceMap ps
-    ml = (fromJust.) . M.lookup
+    ml = (fromJust.) . T.lookup
     unpack (x,y,p) = (ml x xMap, ml y yMap, p)
 
 mkConstraintMatrix :: Player                            -- ^Player we are interested in
-                   -> Map Sequence Int                  -- ^This players' actions mapping
+                   -> TrieMap Act Int                   -- ^This players' actions mapping
                    -> InformationSets (Sequence, [Act]) -- ^All info sets
                    -> [[Double]]
 mkConstraintMatrix p m is = (1:replicate (len-1) 0) : map toEq sets
   where
     sets = filter ((`viewBelongsTo` p) . fst) $ M.toList is
     len  = 1 + length (nub $ concatMap (snd . snd) sets)
-    ml s = fromJust $ M.lookup s m
+    ml s = fromJust $ T.lookup s m
     toEq (_k,(s,as)) = mkRow (ml s) (map (ml . (:s)) as)
 
     mkRow :: Int -> [Int] -> [Double]
