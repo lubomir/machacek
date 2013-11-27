@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances, BangPatterns #-}
 module Algebra where
 
 import           Data.List   (foldl')
@@ -6,7 +6,7 @@ import qualified Data.Map    as M
 import           Data.Matrix
 import           Text.Printf
 
-data Expr a = Expr a (M.Map String a)
+data Expr a = Expr !a !(M.Map String a)
     deriving (Eq, Ord)
 
 instance Num a => Num (Expr a) where
@@ -28,8 +28,8 @@ toStr (Expr c vars) = addC c $ go "" $ M.toList vars
     addC 0 (' ':'-':' ':s)  = '-':s
     addC n "" = p n
     addC n s  = p n ++ " + " ++ s
-    go acc [] = acc
-    go acc ((v,n):vs) = go (acc ++ h v n) vs
+    go (!acc) [] = acc
+    go (!acc) ((v,n):vs) = go (acc ++ h v n) vs
     h v n
       | n == 0    = ""
       | n == 1    = ' ':'+':' ':v
@@ -49,5 +49,5 @@ toMatrixS = fromLists . map (map (\v -> Expr 0 $ M.singleton v 1))
 buildMatrix :: Int -> Int -> [(Int, Int, Double)] -> Matrix (Expr Double)
 buildMatrix r c = foldl' insert (zero r c)
   where
-    insert m (x,y,p) = let oldVal = getElem x y m
-                       in setElem (oldVal + Expr p M.empty) (x,y) m
+    insert m (x,y,p) = let newVal = (getElem x y m) + Expr p M.empty
+                       in newVal `seq` setElem newVal (x,y) m
