@@ -1,9 +1,12 @@
 module GameTree where
 
+import           Algebra
+
 import           Control.Arrow (first, second)
 import           Data.List     (foldl', nub, sort, tails)
 import           Data.Map      (Map)
 import qualified Data.Map      as M
+import           Data.Matrix   (Matrix)
 import           Data.Maybe    (fromJust, fromMaybe)
 import           Data.Tuple    (swap)
 
@@ -163,12 +166,12 @@ getSequenceMap ts = let (xs', ys', _) = unzip3 ts
   where
     buildMap = M.fromList . flip zip [0..] . sort . nub . concatMap tails
 
-mkPayoffMatrix :: [(Sequence, Sequence, Double)] -> [[Double]]
-mkPayoffMatrix ts = [[ val x y | y <- [1..M.size yMap]] | x <- [1..M.size xMap]]
+mkPayoffMatrix :: [(Sequence, Sequence, Double)] -> Matrix (Expr Double)
+mkPayoffMatrix ps = buildMatrix (M.size xMap) (M.size yMap) $ map unpack ps
   where
-    (xMap, yMap) = getSequenceMap ts
+    (xMap, yMap) = getSequenceMap ps
     ml = (fromJust.) . M.lookup
-    val x y = sum $ map (\(_,_,p) -> p) $ filter (\(a,b,_) -> ml a xMap == x && ml b yMap == y) ts
+    unpack (x,y,p) = (ml x xMap, ml y yMap, p)
 
 mkConstraintMatrix :: Player                            -- ^Player we are interested in
                    -> Map Sequence Int                  -- ^This players' actions mapping

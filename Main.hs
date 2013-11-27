@@ -12,7 +12,7 @@ run :: Int -> IO ()
 run k = do
     let (acts, seqs) = mkActions $ mkTree k
         (xMap, yMap) = getSequenceMap seqs
-        payoffMatrix = toMatrixD $ mkPayoffMatrix seqs
+        payoffMatrix = mkPayoffMatrix seqs
         matE = toMatrixD $ mkConstraintMatrix P1 xMap acts
         matF = toMatrixD $ mkConstraintMatrix P2 yMap acts
         vecE = transpose $ toMatrixD [1:replicate (nrows matE - 1) 0]

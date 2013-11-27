@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 module Algebra where
 
+import           Data.List   (foldl')
 import qualified Data.Map    as M
 import           Data.Matrix
 import           Text.Printf
@@ -44,3 +45,9 @@ toMatrixD = fromLists . map (map (`Expr` M.empty))
 
 toMatrixS :: [[String]] -> Matrix (Expr Double)
 toMatrixS = fromLists . map (map (\v -> Expr 0 $ M.singleton v 1))
+
+buildMatrix :: Int -> Int -> [(Int, Int, Double)] -> Matrix (Expr Double)
+buildMatrix r c = foldl' insert (zero r c)
+  where
+    insert m (x,y,p) = let oldVal = getElem x y m
+                       in setElem (oldVal + Expr p M.empty) (x,y) m
