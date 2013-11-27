@@ -157,29 +157,28 @@ mkActions tree = let res = go 1 M.empty (LA ([1..], [1..]) M.empty []) tree
         decHelper acc (a,t) = go p (addAct pl a sp) acc t
 
 
-getSequenceMap :: [(Sequence, Sequence, Double)] -> ([(Sequence,Int)],[(Sequence,Int)])
+getSequenceMap :: [(Sequence, Sequence, Double)] -> (Map Sequence Int,Map Sequence Int)
 getSequenceMap ts = let (xs', ys', _) = unzip3 ts
-                        xMap = flip zip [0..] $ sort $ nub $ sort $ concatMap tails xs'
-                        yMap = flip zip [0..] $ sort $ nub $ sort $ concatMap tails ys'
-                    in (xMap, yMap)
-
+                    in (buildMap xs', buildMap ys')
+  where
+    buildMap = M.fromList . flip zip [0..] . sort . nub . concatMap tails
 
 mkPayoffMatrix :: [(Sequence, Sequence, Double)] -> [[Double]]
-mkPayoffMatrix ts = [[ val x y | y <- [1..length yMap]] | x <- [1..length xMap]]
+mkPayoffMatrix ts = [[ val x y | y <- [1..M.size yMap]] | x <- [1..M.size xMap]]
   where
     (xMap, yMap) = getSequenceMap ts
-    ml = (fromJust.) . lookup
+    ml = (fromJust.) . M.lookup
     val x y = sum $ map (\(_,_,p) -> p) $ filter (\(a,b,_) -> ml a xMap == x && ml b yMap == y) ts
 
 mkConstraintMatrix :: Player                            -- ^Player we are interested in
-                   -> [(Sequence,Int)]                  -- ^This players' actions mapping
+                   -> Map Sequence Int                  -- ^This players' actions mapping
                    -> InformationSets (Sequence, [Act]) -- ^All info sets
                    -> [[Double]]
 mkConstraintMatrix p m is = (1:replicate (len-1) 0) : map toEq sets
   where
     sets = filter ((`viewBelongsTo` p) . fst) $ M.toList is
     len  = 1 + length (nub $ concatMap (snd . snd) sets)
-    ml s = fromJust $ lookup s m
+    ml s = fromJust $ M.lookup s m
     toEq (_k,(s,as)) = mkRow (ml s) (map (ml . (:s)) as)
 
     mkRow :: Int -> [Int] -> [Double]
