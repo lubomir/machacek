@@ -1,11 +1,11 @@
 {-# LANGUAGE FlexibleInstances, BangPatterns #-}
 module Algebra where
 
-import           Data.List   (foldl')
-import qualified Data.Map    as M
+import           Data.List                 (foldl')
+import qualified Data.Map                  as M
 import           Data.Matrix
+import           Numeric.LinearProgramming
 import           Text.Printf
-import Numeric.LinearProgramming
 
 data Expr a = Expr !a !(M.Map String a)
     deriving (Eq, Ord)

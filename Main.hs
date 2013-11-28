@@ -3,13 +3,12 @@ module Main where
 import           Algebra
 import           GameTree
 
-import           Data.List          (intercalate)
+import           Data.List                 (intercalate)
 import           Data.Matrix
-import qualified Data.Vector        as V
+import qualified Data.Vector               as V
+import           Numeric.LinearProgramming
 import           System.Environment
 import           Text.Printf
-
-import Numeric.LinearProgramming
 
 run :: Int -> IO ()
 run k = do
