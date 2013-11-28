@@ -56,8 +56,13 @@ toMatrixD = fromLists . map (map (`Expr` M.empty))
 toMatrixS :: [[String]] -> Matrix (Expr Double)
 toMatrixS = fromLists . map (map (\v -> Expr 0 $ M.singleton v 1))
 
+-- | Given sizes of the matrix and values to put in it, construct
+-- the actual matrix.
+--
+-- WARNING: while the indices in the third argument start from 0,
+-- Data.Matrix.Matrix is indexed from 1.
 buildMatrix :: Int -> Int -> [(Int, Int, Double)] -> Matrix (Expr Double)
 buildMatrix r c = foldl' insert (zero r c)
   where
-    insert m (x,y,p) = let newVal = (getElem x y m) + Expr p M.empty
-                       in newVal `seq` setElem newVal (x,y) m
+    insert m (x,y,p) = let newVal = (getElem (x+1) (y+1) m) + Expr p M.empty
+                       in newVal `seq` setElem newVal (x+1,y+1) m
