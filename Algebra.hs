@@ -5,12 +5,14 @@ import           Data.List   (foldl')
 import qualified Data.Map    as M
 import           Data.Matrix
 import           Text.Printf
+import Numeric.LinearProgramming
 
 data Expr a = Expr !a !(M.Map String a)
     deriving (Eq, Ord)
 
 instance Num a => Num (Expr a) where
     (Expr c1 vs1) + (Expr c2 vs2) = Expr (c1+c2) $ M.unionWith (+) vs1 vs2
+    (Expr c1 vs1) - (Expr c2 vs2) = Expr (c1-c2) $ M.unionWith (+) vs1 $ M.map (*(-1)) vs2
     (Expr c1 vs1) * (Expr c2 vs2)
         | M.null vs1 = Expr (c1*c2) $ M.map (*c1) vs2
         | M.null vs2 = Expr (c1*c2) $ M.map (*c2) vs1
@@ -39,6 +41,14 @@ toStr (Expr c vars) = addC c $ go "" $ M.toList vars
 
 instance Show (Expr Double) where
     show = toStr
+
+fromExpr :: Expr a -> a
+fromExpr (Expr c _) = c
+
+getVars :: Expr Double -> [(Double, Int)]
+getVars (Expr _ vs) = map go $ filter ((/= 0).snd) $ M.toList vs
+  where
+    go (v,d) = d # read (tail v)
 
 toMatrixD :: [[Double]] -> Matrix (Expr Double)
 toMatrixD = fromLists . map (map (`Expr` M.empty))
