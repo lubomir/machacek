@@ -163,13 +163,15 @@ mkActions tree = let res = go 1 M.empty (LA ([1..], [1..]) M.empty []) tree
         decHelper :: LoopAcc -> (Act, GameTree) -> LoopAcc
         decHelper acc (a,t) = go p (addAct pl a sp) acc t
 
-
-getSequenceMap :: [(Sequence, Sequence, Double)]
+getSequenceMap :: [(Sequence, Sequence, a)]
                -> (TrieMap Act Int, TrieMap Act Int)
 getSequenceMap ts = let (xs', ys', _) = unzip3 ts
                     in (buildMap xs', buildMap ys')
   where
-    buildMap = T.fromList . flip zip [0..] . sort . nub . concatMap tails
+    buildMap l = fst $ foldl' ins (T.empty, 0) $ sort $ concatMap tails l
+    ins (m, n) x = case T.lookup x m of
+                    Nothing -> (T.insert x n m, n+1)
+                    Just _  -> (m, n)
 
 mkPayoffMatrix :: [(Sequence, Sequence, Double)] -> Matrix Double
 mkPayoffMatrix ps = mkMatrix (T.size xMap) (T.size yMap) $ toMap ps
