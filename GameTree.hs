@@ -10,8 +10,8 @@ import qualified Data.ListTrie.Patricia.Map     as T
 import           Data.ListTrie.Patricia.Map.Ord (TrieMap)
 import           Data.Map.Strict                (Map)
 import qualified Data.Map.Strict                as M
-import           Data.Matrix                    (Matrix)
 import           Data.Maybe                     (fromJust, fromMaybe)
+import           Data.Packed.Matrix             (Matrix)
 import           Data.Tuple                     (swap)
 
 data Player = P1 | P2
@@ -172,7 +172,7 @@ getSequenceMap ts = let (xs', ys', _) = unzip3 ts
     buildMap = T.fromList . flip zip [0..] . sort . nub . concatMap tails
 
 mkPayoffMatrix :: [(Sequence, Sequence, Double)] -> Matrix Double
-mkPayoffMatrix ps = buildMatrix (T.size xMap) (T.size yMap) $ toMap ps
+mkPayoffMatrix ps = mkMatrix (T.size xMap) (T.size yMap) $ toMap ps
   where
     (xMap, yMap) = getSequenceMap ps
     ml = (fromJust.) . T.lookup
