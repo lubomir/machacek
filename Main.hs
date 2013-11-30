@@ -3,7 +3,6 @@ module Main where
 import           Algebra
 import           GameTree
 
-import           Data.List                 (intercalate)
 import           Data.Matrix
 import qualified Data.Vector               as V
 import           Numeric.LinearProgramming
@@ -24,13 +23,6 @@ run k = do
         xs = transpose $ toMatrixS [xNames]
         zs = transpose $ toMatrixS [zNames]
 
-    maximize $ multStd (transpose vecF) zs
-    constrain' "=" (multStd matE xs) vecE
-    constrain' "<=" (multStd (transpose matF) zs) (transpose payoffMatrix `multStd` xs)
-    nonNeg xNames
-    declare "free" zNames
-
-{-
     let opt = Maximize $ replicate (length xNames) 0 ++ [1] ++ replicate (length zNames - 1) 0
     let c1  = constrain (:==:) (multStd matE xs) vecE
     let lhs = multStd (transpose matF) zs
@@ -39,15 +31,12 @@ run k = do
     let c = c1 ++ c2
     let bounds = map (\z -> Free (read $ tail z)) zNames
     let res = simplex opt (Sparse c) bounds
-    --mapM_ print c
-    --mapM_ print bounds
     case res of
-        Optimal (o,_) -> putStrLn $ printf "%.3f" o
+        Optimal (o,v) -> do putStrLn $ printf "%.3f" o
+                            print v
         _ -> print res
-        -}
 
   where
-  {-
     constrain :: ([(Double, Int)] -> Double -> Bound [(Double,Int)])
               -> Matrix (Expr Double)
               -> Matrix (Expr Double)
@@ -57,16 +46,6 @@ run k = do
         go i = let l = V.head (i `getRow` lhs)
                    r = V.head (i `getRow` rhs)
                in getVars l `op` (fromExpr r - fromExpr l)
-               -}
-
-    maximize e = putStrLn $ concat ["max: ", toStr $ e ! (1,1), ";"]
-    constrain' op lhs rhs = mapM_ go [1..nrows lhs]
-      where
-        go i = let l = i `getRow` lhs
-                   r = i `getRow` rhs
-               in putStrLn $ concat [toStr $ V.head l, " ", op, " ", toStr $ V.head r, ";"]
-    nonNeg = mapM_ (\v -> putStrLn $ v ++ " >= 0;")
-    declare t vs = putStrLn $ t ++ " " ++ intercalate ", " vs ++ ";"
 
 main :: IO ()
 main = do
