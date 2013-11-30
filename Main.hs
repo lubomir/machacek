@@ -23,9 +23,9 @@ run k = do
         zs = transpose $ toMatrixS [zNames]
 
     let opt = Maximize $ replicate (length xNames) 0 ++ [1] ++ replicate (length zNames - 1) 0
-    let c1  = constrain (:==:) (multStd matE xs) vecE
-    let lhs = multStd (transpose matF) zs
-    let rhs = transpose payoffMatrix `multStd` xs
+    let c1  = constrain (:==:) (matE * xs) vecE
+    let lhs = (transpose matF) * zs
+    let rhs = transpose payoffMatrix * xs
     let c2  = constrain (:<=:) (lhs - rhs) (zero (nrows lhs) 1)
     let c = c1 ++ c2
     let bounds = map (\z -> Free (read $ tail z)) zNames
