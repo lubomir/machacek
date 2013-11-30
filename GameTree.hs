@@ -171,7 +171,7 @@ getSequenceMap ts = let (xs', ys', _) = unzip3 ts
   where
     buildMap = T.fromList . flip zip [0..] . sort . nub . concatMap tails
 
-mkPayoffMatrix :: [(Sequence, Sequence, Double)] -> Matrix (Expr Double)
+mkPayoffMatrix :: [(Sequence, Sequence, Double)] -> Matrix Double
 mkPayoffMatrix ps = buildMatrix (T.size xMap) (T.size yMap) $ toMap ps
   where
     (xMap, yMap) = getSequenceMap ps
