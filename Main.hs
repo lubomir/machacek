@@ -21,7 +21,7 @@ run k = do
     let opt = Maximize $ replicate (length xs) 0 ++ [1] ++ replicate (length zs - 1) 0
     let c1 = fastConstrain (:==:) (matMult matE [1..nrows payoffMatrix]) (1:repeat 0)
 
-    let lhs = matMult ((negate $ transpose payoffMatrix) <|> transpose matF) (xs ++ zs)
+    let lhs = matMult (negate (transpose payoffMatrix) <|> transpose matF) (xs ++ zs)
     let c2  = fastConstrain (:<=:) lhs (repeat 0)
     let bounds = map Free zs
     let res = simplex opt (Sparse (c1 ++ c2)) bounds
