@@ -3,8 +3,8 @@ module Main where
 import           Algebra
 import           GameTree
 
+import           Data.List          (intercalate)
 import           Data.Packed.Matrix
-import           Numeric.LinearProgramming
 import           System.Environment
 import           Text.Printf
 
@@ -15,27 +15,28 @@ run k = do
         payoffMatrix = mkPayoffMatrix seqs
         matE = fromLists $ mkConstraintMatrix P1 xMap acts
         matF = fromLists $ mkConstraintMatrix P2 yMap acts
-        xs = [1..rows payoffMatrix]
-        zs = map (+length xs) [1..rows matF]
+        xs = map (('x':) . show) [1..rows payoffMatrix]
+        zs = map (('z':) . show) [1..rows matF]
 
-    let opt = Maximize $ replicate (length xs) 0 ++ [1] ++ replicate (length zs - 1) 0
-    let c1 = fastConstrain (:==:) (matMult matE [1..rows payoffMatrix]) (1:repeat 0)
+    putStrLn $ "max: " ++ head zs ++ ";"
+    fastConstrain "=" (matMult matE xs) (1:repeat 0)
 
-    let lhs = matMult (trans (negate payoffMatrix) <|> trans matF) (xs ++ zs)
-    let c2  = fastConstrain (:<=:) lhs (repeat 0)
-    let bounds = map Free zs
-    let res = simplex opt (Sparse (c1 ++ c2)) bounds
-    case res of
-        Optimal (o,v) -> do putStrLn $ printf "%.3f" o
-                            print v
-        _ -> print res
+    let lhs = matMult (trans (mapMatrix negate payoffMatrix) <|> trans matF) (xs ++ zs)
+    fastConstrain "<=" lhs (repeat 0)
+    setBounds zs
 
   where
-    fastConstrain :: ([(Double, Int)] -> Double -> Bound [(Double, Int)])
-                  -> [[(Double, Int)]]
-                  -> [Double]
-                  -> [Bound [(Double, Int)]]
-    fastConstrain = zipWith
+    fastConstrain op lhs rhs = mapM_ go $ zip lhs rhs
+      where
+        go (l, r) = putStrLn $ concatMap f l ++ op ++ show r ++ ";"
+        f (n, v)
+          | n == 0 = ""
+          | n > 0  = '+':p n ++ v
+          | n < 0  = p n ++ v
+
+        p = printf "%.5f"
+
+    setBounds vs = putStrLn $ "free " ++ intercalate ", " vs ++ ";"
 
     m <|> n = fromBlocks [[m, n]]
 
