@@ -49,7 +49,7 @@ run k = do
                   -> [[(Double, Int)]]
                   -> [Double]
                   -> [Bound [(Double, Int)]]
-    fastConstrain op lhs rhs = zipWith op lhs rhs
+    fastConstrain = zipWith
 
     matMult :: Matrix Double -> [Int] -> [[(Double, Int)]]
     matMult m vs = map go [1..nrows m]

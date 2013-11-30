@@ -63,6 +63,6 @@ toMatrixS = fromLists . map (map (\v -> Expr 0 $ M.singleton v 1))
 -- WARNING: while the indices in the third argument start from 0,
 -- Data.Matrix.Matrix is indexed from 1.
 buildMatrix :: Int -> Int -> IntMap (IntMap Double)-> Matrix (Expr Double)
-buildMatrix r c m = let res = matrix r c go in res `seq` res
+buildMatrix r c m = matrix r c go
   where
-    go (x,y) = maybe 0 (`Expr` M.empty) $ (I.lookup (x-1) m >>= I.lookup (y-1))
+    go (x,y) = maybe 0 (`Expr` M.empty) (I.lookup (x-1) m >>= I.lookup (y-1))
