@@ -14,16 +14,15 @@ run k = do
     let (acts, seqs) = mkActions $ mkTree k
         (xMap, yMap) = getSequenceMap seqs
         payoffMatrix = mkPayoffMatrix seqs
-        matE = toMatrixD $ mkConstraintMatrix P1 xMap acts
+        matE = fromLists $ mkConstraintMatrix P1 xMap acts
         matF = toMatrixD $ mkConstraintMatrix P2 yMap acts
-        vecE = transpose $ toMatrixD [1:replicate (nrows matE - 1) 0]
         xNames = map (('x':).show) [1..nrows payoffMatrix]
         zNames = map (('z':).show.(+length xNames)) [1..nrows matF]
         xs = transpose $ toMatrixS [xNames]
         zs = transpose $ toMatrixS [zNames]
 
     let opt = Maximize $ replicate (length xNames) 0 ++ [1] ++ replicate (length zNames - 1) 0
-    let c1  = constrain (:==:) (matE `multStd` xs) vecE
+    let c1 = fastConstrain (:==:) (matMult matE [1..nrows payoffMatrix]) (1:repeat 0)
     let lhs = transpose matF `multStd` zs
     let rhs = transpose payoffMatrix `multStd` xs
     let c2  = constrain (:<=:) (lhs - rhs) (zero (nrows lhs) 1)
@@ -45,6 +44,19 @@ run k = do
         go i = let l = V.head (i `getRow` lhs)
                    r = V.head (i `getRow` rhs)
                in getVars l `op` (fromExpr r - fromExpr l)
+
+    fastConstrain :: ([(Double, Int)] -> Double -> Bound [(Double, Int)])
+                  -> [[(Double, Int)]]
+                  -> [Double]
+                  -> [Bound [(Double, Int)]]
+    fastConstrain op lhs rhs = zipWith op lhs rhs
+
+    matMult :: Matrix Double -> [Int] -> [[(Double, Int)]]
+    matMult m vs = map go [1..nrows m]
+      where
+        go :: Int -> [(Double, Int)]
+        go i = let row = i `getRow` m
+               in zip (V.toList row) vs
 
 main :: IO ()
 main = do
