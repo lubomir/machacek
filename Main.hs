@@ -17,7 +17,6 @@ run k = do
         matE = toMatrixD $ mkConstraintMatrix P1 xMap acts
         matF = toMatrixD $ mkConstraintMatrix P2 yMap acts
         vecE = transpose $ toMatrixD [1:replicate (nrows matE - 1) 0]
-        vecF = transpose $ toMatrixD [1:replicate (nrows matF - 1) 0]
         xNames = map (('x':).show) [1..nrows payoffMatrix]
         zNames = map (('z':).show.(+length xNames)) [1..nrows matF]
         xs = transpose $ toMatrixS [xNames]
