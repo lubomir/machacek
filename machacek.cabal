@@ -12,30 +12,18 @@ name:                machacek
 --                   | | | +--- code changes with no API change
 version:             0.1.0.0
 
--- A short (one-line) description of the package.
--- synopsis:            
+synopsis:            Find optimal strategy for game of Macháček
 
 -- A longer description of the package.
 -- description:         
 
--- The license under which the package is released.
--- license:             
-
--- The file containing the license text.
+license:             GPL
 license-file:        LICENSE
 
--- The package author(s).
 author:              Lubomír Sedlář
-
--- An email address to which users can send suggestions, bug reports, and 
--- patches.
 maintainer:          lubomir.sedlar@gmail.com
 
--- A copyright notice.
--- copyright:           
-
--- category:            
-
+category:            Game
 build-type:          Simple
 
 -- Extra files to be distributed with the package, such as examples or a 
@@ -45,6 +33,9 @@ build-type:          Simple
 -- Constraint on the version of Cabal needed to build this package.
 cabal-version:       >=1.10
 
+source-repository head
+  type:     git
+  location: https://github.com/lubomir/machacek
 
 executable machacek
   -- .hs or .lhs file containing the Main module.
