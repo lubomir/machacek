@@ -39,6 +39,9 @@ toStr (Expr c vars) = addC c $ go "" $ M.toList vars
       | n < 0     = concat [" - ", p (-n), "*", v]
       | otherwise = concat [" + ", p n, "*", v]
 
+addConst :: Double -> Expr Double -> Expr Double
+addConst c !(Expr c1 vs) = Expr (c+c1) vs
+
 instance Show (Expr Double) where
     show = toStr
 
@@ -64,5 +67,5 @@ toMatrixS = fromLists . map (map (\v -> Expr 0 $ M.singleton v 1))
 buildMatrix :: Int -> Int -> [(Int, Int, Double)] -> Matrix (Expr Double)
 buildMatrix r c = foldl' insert (zero r c)
   where
-    insert m (x,y,p) = let newVal = (getElem (x+1) (y+1) m) + Expr p M.empty
+    insert m (x,y,p) = let newVal = addConst p (getElem (x+1) (y+1) m)
                        in newVal `seq` setElem newVal (x+1,y+1) m
