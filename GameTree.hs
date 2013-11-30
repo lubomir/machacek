@@ -6,8 +6,8 @@ import           Control.Arrow                  (first, second)
 import           Data.List                      (foldl', nub, sort, tails)
 import qualified Data.ListTrie.Patricia.Map     as T
 import           Data.ListTrie.Patricia.Map.Ord (TrieMap)
-import           Data.Map                       (Map)
-import qualified Data.Map                       as M
+import           Data.Map.Strict                (Map)
+import qualified Data.Map.Strict                as M
 import           Data.Matrix                    (Matrix)
 import           Data.Maybe                     (fromJust, fromMaybe)
 import           Data.Tuple                     (swap)
@@ -170,11 +170,15 @@ getSequenceMap ts = let (xs', ys', _) = unzip3 ts
     buildMap = T.fromList . flip zip [0..] . sort . nub . concatMap tails
 
 mkPayoffMatrix :: [(Sequence, Sequence, Double)] -> Matrix (Expr Double)
-mkPayoffMatrix ps = buildMatrix (T.size xMap) (T.size yMap) $ map unpack ps
+mkPayoffMatrix ps = buildMatrix (T.size xMap) (T.size yMap) $ toMap ps
   where
     (xMap, yMap) = getSequenceMap ps
     ml = (fromJust.) . T.lookup
-    unpack (x,y,p) = (ml x xMap, ml y yMap, p)
+
+    toMap :: [(Sequence, Sequence, Double)] -> Map (Int, Int) Double
+    toMap = foldl' ins M.empty
+      where
+        ins !m (x,y,p) = M.insertWith (+) (ml x xMap, ml y yMap) p m
 
 mkConstraintMatrix :: Player                            -- ^Player we are interested in
                    -> TrieMap Act Int                   -- ^This players' actions mapping

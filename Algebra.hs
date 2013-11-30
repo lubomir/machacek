@@ -1,8 +1,8 @@
-{-# LANGUAGE FlexibleInstances, BangPatterns #-}
+{-# LANGUAGE FlexibleInstances #-}
 module Algebra where
 
-import           Data.List                 (foldl')
-import qualified Data.Map                  as M
+import           Data.Map                  (Map)
+import qualified Data.Map.Strict           as M
 import           Data.Matrix
 import           Numeric.LinearProgramming
 import           Text.Printf
@@ -39,9 +39,6 @@ toStr (Expr c vars) = addC c $ go "" $ M.toList vars
       | n < 0     = concat [" - ", p (-n), "*", v]
       | otherwise = concat [" + ", p n, "*", v]
 
-addConst :: Double -> Expr Double -> Expr Double
-addConst c !(Expr c1 vs) = Expr (c+c1) vs
-
 instance Show (Expr Double) where
     show = toStr
 
@@ -64,8 +61,7 @@ toMatrixS = fromLists . map (map (\v -> Expr 0 $ M.singleton v 1))
 --
 -- WARNING: while the indices in the third argument start from 0,
 -- Data.Matrix.Matrix is indexed from 1.
-buildMatrix :: Int -> Int -> [(Int, Int, Double)] -> Matrix (Expr Double)
-buildMatrix r c = foldl' insert (zero r c)
+buildMatrix :: Int -> Int -> Map (Int, Int) Double -> Matrix (Expr Double)
+buildMatrix r c m = let res = matrix r c go in res `seq` res
   where
-    insert m (x,y,p) = let newVal = addConst p (getElem (x+1) (y+1) m)
-                       in newVal `seq` setElem newVal (x+1,y+1) m
+    go (x,y) = maybe 0 (`Expr` M.empty) $ M.lookup (x-1,y-1) m

@@ -55,7 +55,8 @@ executable machacek
                      , Algebra
   
   -- LANGUAGE extensions used by modules in this package.
-  other-extensions:    DeriveGeneric
+  default-extensions:  BangPatterns
+  other-extensions:    FlexibleInstances
   
   -- Other library packages from which modules are imported.
   build-depends:       base >=4.6 && <4.7
