@@ -5,7 +5,7 @@ import           Algebra
 import           Control.Arrow                  (first, second)
 import           Data.IntMap.Strict             (IntMap)
 import qualified Data.IntMap.Strict             as I
-import           Data.List                      (foldl', nub, sort, tails)
+import           Data.List                      (foldl', nub, tails)
 import qualified Data.ListTrie.Patricia.Map     as T
 import           Data.ListTrie.Patricia.Map.Ord (TrieMap)
 import           Data.Map.Strict                (Map)
