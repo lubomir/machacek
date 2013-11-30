@@ -168,7 +168,7 @@ getSequenceMap :: [(Sequence, Sequence, a)]
 getSequenceMap ts = let (xs', ys', _) = unzip3 ts
                     in (buildMap xs', buildMap ys')
   where
-    buildMap l = fst $ foldl' ins (T.empty, 0) $ sort $ concatMap tails l
+    buildMap l = fst $ foldl' ins (T.empty, 0) $ reverse $ concatMap tails l
     ins (m, n) x = case T.lookup x m of
                     Nothing -> (T.insert x n m, n+1)
                     Just _  -> (m, n)
