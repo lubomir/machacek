@@ -1,7 +1,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 module Algebra where
 
-import           Data.Map                  (Map)
+import           Data.IntMap.Strict        (IntMap)
+import qualified Data.IntMap.Strict        as I
 import qualified Data.Map.Strict           as M
 import           Data.Matrix
 import           Numeric.LinearProgramming
@@ -61,7 +62,7 @@ toMatrixS = fromLists . map (map (\v -> Expr 0 $ M.singleton v 1))
 --
 -- WARNING: while the indices in the third argument start from 0,
 -- Data.Matrix.Matrix is indexed from 1.
-buildMatrix :: Int -> Int -> Map (Int, Int) Double -> Matrix (Expr Double)
+buildMatrix :: Int -> Int -> IntMap (IntMap Double)-> Matrix (Expr Double)
 buildMatrix r c m = let res = matrix r c go in res `seq` res
   where
-    go (x,y) = maybe 0 (`Expr` M.empty) $ M.lookup (x-1,y-1) m
+    go (x,y) = maybe 0 (`Expr` M.empty) $ (I.lookup (x-1) m >>= I.lookup (y-1))

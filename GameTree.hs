@@ -3,6 +3,8 @@ module GameTree where
 import           Algebra
 
 import           Control.Arrow                  (first, second)
+import           Data.IntMap.Strict             (IntMap)
+import qualified Data.IntMap.Strict             as I
 import           Data.List                      (foldl', nub, sort, tails)
 import qualified Data.ListTrie.Patricia.Map     as T
 import           Data.ListTrie.Patricia.Map.Ord (TrieMap)
@@ -175,10 +177,10 @@ mkPayoffMatrix ps = buildMatrix (T.size xMap) (T.size yMap) $ toMap ps
     (xMap, yMap) = getSequenceMap ps
     ml = (fromJust.) . T.lookup
 
-    toMap :: [(Sequence, Sequence, Double)] -> Map (Int, Int) Double
-    toMap = foldl' ins M.empty
+    toMap :: [(Sequence, Sequence, Double)] -> IntMap (IntMap Double)
+    toMap = foldl' ins I.empty
       where
-        ins !m (x,y,p) = M.insertWith (+) (ml x xMap, ml y yMap) p m
+        ins m (x,y,p) = I.insertWith (I.unionWith (+)) (ml x xMap) (I.singleton (ml y yMap) p) m
 
 mkConstraintMatrix :: Player                            -- ^Player we are interested in
                    -> TrieMap Act Int                   -- ^This players' actions mapping
