@@ -1,4 +1,3 @@
-{-# LANGUAGE FlexibleInstances #-}
 module Algebra where
 
 import           Data.IntMap.Strict (IntMap)
