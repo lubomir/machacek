@@ -3,6 +3,10 @@ module Main where
 import           Algebra
 import           GameTree
 
+import           Control.Arrow
+import           Data.IntMap           (IntMap)
+import qualified Data.IntMap           as I
+import           Data.List             (partition)
 import           Data.List             (intercalate)
 import           Numeric.LinearAlgebra (fromBlocks, fromLists, rows, trans)
 import           System.Environment
@@ -20,8 +24,8 @@ constrain op lhs rhs = mapM_ go $ zip lhs rhs
 
     p = printf "%.5f"
 
-run :: Int -> IO ()
-run k = do
+makeLP :: Int -> IO ()
+makeLP k = do
     let (acts, seqs) = mkActions $ mkTree k
         (xMap, yMap) = getSequenceMap seqs
         payoffMatrix = mkPayoffMatrix seqs
@@ -41,7 +45,31 @@ run k = do
     setBounds vs = putStrLn $ "free " ++ intercalate ", " vs ++ ";"
     m <|> n = fromBlocks [[m, n]]
 
+parseVars :: String -> (IntMap Double, IntMap Double)
+parseVars = (toMap *** toMap) . partition ((=='x') . head) . filter hasVar . lines
+  where
+    hasVar ('x':_) = True
+    hasVar ('z':_) = True
+    hasVar _ = False
+
+    toPair [_:idx,val] = (read idx, read val)
+    toPair _ = error "Parse error"
+
+    toMap :: [String] -> IntMap Double
+    toMap = I.fromList . map (toPair . words)
+
+makeStrategy :: Int -> IO ()
+makeStrategy k = do
+    let (acts, seqs) = mkActions $ mkTree k
+    inp <- getContents
+    let vars = parseVars inp
+    print vars
+
 main :: IO ()
 main = do
-    [arg] <- getArgs
-    run $ read arg
+    args <- getArgs
+    case args of
+        ["lp", arg] -> makeLP $ read arg
+        ["strategy", arg] -> makeStrategy $ read arg
+        _ -> do putStrLn "Usage: machacek CMD SIZE"
+                putStrLn "CMD: lp | strategy"
