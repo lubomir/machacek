@@ -8,34 +8,14 @@ import           Control.Arrow                  (first, (***))
 import           Control.Monad                  (when)
 import           Data.IntMap                    (IntMap)
 import qualified Data.IntMap                    as I
-import           Data.List                      (intercalate, partition, sortBy)
+import           Data.List                      (intercalate, partition)
 import qualified Data.ListTrie.Patricia.Map     as T
 import           Data.ListTrie.Patricia.Map.Ord (TrieMap)
 import           Data.Maybe                     (fromJust, fromMaybe)
-import           Data.Ord                       (comparing)
 import           Numeric.LinearAlgebra          (cols, fromBlocks, fromLists,
                                                  multiply, rows, trans)
 import           System.Environment
 import           Text.Printf
-
-makeLP :: Int -> IO (Double, [(String, Double)])
-makeLP k = do
-    let (acts, seqs) = mkActions $ mkTree k
-        (xMap, yMap) = getSequenceMap seqs
-        payoffMatrix = mkPayoffMatrix seqs
-        matE = fromLists $ mkConstraintMatrix P1 xMap acts
-        matF = fromLists $ mkConstraintMatrix P2 yMap acts
-        xs = map (('x':) . show) [0..rows payoffMatrix-1]
-        zs = map (('z':) . show) [0..rows matF-1]
-        lhs = matMult (trans (negate payoffMatrix) <|> trans matF) (xs ++ zs)
-
-    lpSolve $ do
-        maximize $ head zs
-        constrain "=" (matMult matE xs) (1:repeat 0)
-        constrain "<=" lhs (repeat 0)
-        setFree zs
-  where
-    m <|> n = fromBlocks [[m, n]]
 
 parseVars :: [(String, Double)] -> (IntMap Double, IntMap Double)
 parseVars = (toMap *** toMap) . partition ((=='x') . head . fst)
@@ -79,30 +59,38 @@ printHistory h = putStrLn $ "Situation: " ++ intercalate ", " (map go h)
         0 -> "rolled " ++ show (rolled e)
         i -> "rolled " ++ show (rolled e) ++ " and said " ++ show i
 
-makeStrategy :: Int -> [(String, Double)] -> IO ()
-makeStrategy k inp = do
-    let (acts, seqs) = mkActions $ mkTree k
+main :: IO ()
+main = do
+    [arg] <- getArgs
+    let (acts, seqs) = mkActions $ mkTree (read arg)
         (xMap, yMap) = getSequenceMap seqs
-    let vars = parseVars inp
-    let (actsForP1,actsForP2) = partition ((`viewBelongsTo` P1) . fst) $ T.toList acts
         payoffMatrix = mkPayoffMatrix seqs
-        xs = fromLists [map snd . sortBy (comparing fst) . I.toList $ fst vars]
+        matE = fromLists $ mkConstraintMatrix P1 xMap acts
         matF = fromLists $ mkConstraintMatrix P2 yMap acts
+        xs = map (('x':) . show) [0..rows payoffMatrix-1]
+        zs = map (('z':) . show) [0..rows matF-1]
         ys = map (('y':) . show) [0..cols matF-1]
-        coeff = xs `multiply` payoffMatrix
+        lhs = (trans (negate payoffMatrix) <|> trans matF) `matMult` (xs ++ zs)
+
+    (opt, vars') <- lpSolve $ do
+        maximize $ head zs
+        constrain "=" (matE `matMult` xs) (1:repeat 0)
+        constrain "<=" lhs (repeat 0)
+        setFree zs
+    putStrLn $ printf "Value of game is %.3f\n" opt
+
+    let vars = parseVars vars'
+        (actsForP1,actsForP2) = partition ((`viewBelongsTo` P1) . fst) $ T.toList acts
+        xVars = fromLists [map snd . I.toAscList $ fst vars]
+        coeff = xVars `multiply` payoffMatrix
     putStrLn "Strategy for player 1"
     getStrategy xMap (fst vars) actsForP1
 
     (_,res) <- lpSolve $ do
-        minimize $ head $ matMult coeff ys
-        constrain "=" (matMult matF ys) (1:repeat 0)
+        minimize $ head $ coeff `matMult` ys
+        constrain "=" (matF `matMult` ys) (1:repeat 0)
 
     putStrLn "\nStrategy for player 2"
     getStrategy yMap (snd $ parseVars res) actsForP2
-
-main :: IO ()
-main = do
-    [arg] <- getArgs
-    (opt, vars) <- makeLP (read arg)
-    putStrLn $ printf "Value of game is %.3f\n" opt
-    makeStrategy (read arg) vars
+  where
+    m <|> n = fromBlocks [[m, n]]
