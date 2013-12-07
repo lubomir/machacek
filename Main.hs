@@ -3,11 +3,11 @@ module Main where
 import           Algebra
 import           GameTree
 
-import           Control.Arrow
+import           Control.Arrow         ((***))
+import           Control.Monad         (when)
 import           Data.IntMap           (IntMap)
 import qualified Data.IntMap           as I
-import           Data.List             (partition)
-import           Data.List             (intercalate)
+import           Data.List             (partition, intercalate)
 import qualified Data.Map              as M
 import           Data.Maybe (fromJust)
 import qualified Data.ListTrie.Patricia.Map     as T
@@ -62,21 +62,21 @@ parseVars = (toMap *** toMap) . partition ((=='x') . head) . filter hasVar . lin
     toMap :: [String] -> IntMap Double
     toMap = I.fromList . map (toPair . words)
 
-getStrategy :: TrieMap Act Int
-            -> IntMap Double
+getStrategy :: TrieMap Act Int  -- ^Sequence numbering
+            -> IntMap Double    -- ^Variables from linear program
             -> [(HistoryView, (Sequence, [Act]))]
+                                -- ^List of information sets, their sequences
+                                --  and possible actions
             -> IO ()
-getStrategy m vars sets = mapM_ toDecision sets
+getStrategy m vars = mapM_ toDecision
   where
-    ml = fromJust . flip T.lookup m
-    toDecision (hist, (sq, actions)) = if parent > 0
-        then do
+    var = fromJust . flip I.lookup vars . fromJust . flip T.lookup m
+    toDecision (hist, (sq, actions)) =
+        when (parent > 0) $ do
             putStrLn $ "Situation " ++ show hist
-            mapM_ go $ zip [0..] $ map (/parent) as
-        else return ()
+            mapM_ go $ zip [0..] $ map ((/parent) . var . (: sq)) actions
       where
-        parent = fromJust $ I.lookup (ml sq) vars
-        as = map (fromJust . flip I.lookup vars .  ml . (\x -> x : sq)) actions
+        parent = var sq
 
         go :: (Int, Double) -> IO ()
         go (_,0) = return ()
