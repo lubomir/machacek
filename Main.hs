@@ -2,6 +2,7 @@ module Main where
 
 import           Algebra
 import           GameTree
+import           LPSolve
 
 import           Control.Arrow         ((***))
 import           Control.Monad         (when)
@@ -16,19 +17,7 @@ import           Numeric.LinearAlgebra (fromBlocks, fromLists, rows, trans)
 import           System.Environment
 import           Text.Printf
 
-constrain :: String -> [[(Double, String)]] -> [Int] -> IO ()
-constrain op lhs rhs = mapM_ go $ zip lhs rhs
-  where
-    go (l, r) = putStrLn $ concatMap f l ++ op ++ show r ++ ";"
-    f (n, v)
-      | n == 0 = ""
-      | n > 0  = '+':p n ++ v
-      | n < 0  = p n ++ v
-    f (_, _) = error "How is this even possible?"
-
-    p = printf "%.5f"
-
-makeLP :: Int -> IO ()
+makeLP :: Int -> IO (Double, [(String, Double)])
 makeLP k = do
     let (acts, seqs) = mkActions $ mkTree k
         (xMap, yMap) = getSequenceMap seqs
@@ -37,16 +26,14 @@ makeLP k = do
         matF = fromLists $ mkConstraintMatrix P2 yMap acts
         xs = map (('x':) . show) [0..rows payoffMatrix-1]
         zs = map (('z':) . show) [0..rows matF-1]
+        lhs = matMult (trans (negate payoffMatrix) <|> trans matF) (xs ++ zs)
 
-    maximize $ head zs
-    constrain "=" (matMult matE xs) (1:repeat 0)
-
-    let lhs = matMult (trans (negate payoffMatrix) <|> trans matF) (xs ++ zs)
-    constrain "<=" lhs (repeat 0)
-    setBounds zs
+    lpSolve $ do
+        maximize $ head zs
+        constrain "=" (matMult matE xs) (1:repeat 0)
+        constrain "<=" lhs (repeat 0)
+        setFree zs
   where
-    maximize = putStrLn . printf "max: %s;"
-    setBounds vs = putStrLn $ "free " ++ intercalate ", " vs ++ ";"
     m <|> n = fromBlocks [[m, n]]
 
 parseVars :: String -> (IntMap Double, IntMap Double)
@@ -109,7 +96,7 @@ main :: IO ()
 main = do
     args <- getArgs
     case args of
-        ["lp", arg] -> makeLP $ read arg
+        ["lp", arg] -> makeLP (read arg) >>= print
         ["strategy", arg] -> makeStrategy $ read arg
         _ -> do putStrLn "Usage: machacek CMD SIZE"
                 putStrLn "CMD: lp | strategy"
