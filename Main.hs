@@ -8,12 +8,13 @@ import           Control.Arrow                  (first, (***))
 import           Control.Monad                  (when)
 import           Data.IntMap                    (IntMap)
 import qualified Data.IntMap                    as I
-import           Data.List                      (intercalate, partition)
+import           Data.List                      (intercalate, partition, sortBy)
 import qualified Data.ListTrie.Patricia.Map     as T
 import           Data.ListTrie.Patricia.Map.Ord (TrieMap)
-import           Data.Maybe                     (fromJust)
-import           Numeric.LinearAlgebra          (fromBlocks, fromLists, rows,
-                                                 trans)
+import           Data.Maybe                     (fromJust, fromMaybe)
+import           Data.Ord                       (comparing)
+import           Numeric.LinearAlgebra          (cols, fromBlocks, fromLists,
+                                                 multiply, rows, trans)
 import           System.Environment
 import           Text.Printf
 
@@ -49,7 +50,7 @@ getStrategy :: TrieMap Act Int  -- ^Sequence numbering
             -> IO ()
 getStrategy m vars = mapM_ toDecision
   where
-    var = fromJust . flip I.lookup vars . fromJust . flip T.lookup m
+    var = fromMaybe 1 . flip I.lookup vars . fromJust . flip T.lookup m
     toDecision (hist, (sq, actions)) =
         when (parent > 0) $ do
             printHistory hist
@@ -64,7 +65,9 @@ getStrategy m vars = mapM_ toDecision
 
         a n  = case last hist of
                 Heard _     -> if n == 0 then "Trust" else "Do not trust"
-                Performed e -> "Say " ++ show (rolled e + n)
+                Performed e -> "Say " ++ show (firstOption e + n)
+          where
+            firstOption e = max (rolled e) (lastHeard hist + 1)
 
 -- |Print history view in user friendly way.
 --
@@ -79,10 +82,23 @@ printHistory h = putStrLn $ "Situation: " ++ intercalate ", " (map go h)
 makeStrategy :: Int -> [(String, Double)] -> IO ()
 makeStrategy k inp = do
     let (acts, seqs) = mkActions $ mkTree k
-        (xMap, _yMap) = getSequenceMap seqs
+        (xMap, yMap) = getSequenceMap seqs
     let vars = parseVars inp
-    let actsForP1 = filter ((`viewBelongsTo` P1) . fst) $ T.toList acts
+    let (actsForP1,actsForP2) = partition ((`viewBelongsTo` P1) . fst) $ T.toList acts
+        payoffMatrix = mkPayoffMatrix seqs
+        xs = fromLists [map snd . sortBy (comparing fst) . I.toList $ fst vars]
+        matF = fromLists $ mkConstraintMatrix P2 yMap acts
+        ys = map (('y':) . show) [0..cols matF-1]
+        coeff = xs `multiply` payoffMatrix
+    putStrLn "Strategy for player 1"
     getStrategy xMap (fst vars) actsForP1
+
+    (_,res) <- lpSolve $ do
+        minimize $ head $ matMult coeff ys
+        constrain "=" (matMult matF ys) (1:repeat 0)
+
+    putStrLn "\nStrategy for player 2"
+    getStrategy yMap (snd $ parseVars res) actsForP2
 
 main :: IO ()
 main = do

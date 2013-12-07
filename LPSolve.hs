@@ -1,6 +1,7 @@
 module LPSolve ( LinearProgram
                , lpSolve
                , maximize
+               , minimize
                , constrain
                , setFree
                ) where
@@ -32,6 +33,9 @@ type LinearProgram = Writer LP ()
 maximize :: String -> LinearProgram
 maximize v = tell $ LP (Just $ "max: "++v++";") [] []
 
+minimize :: [(Double, String)] -> LinearProgram
+minimize vs = tell $ LP (Just $ "min: "++concatMap mult vs ++ ";") [] []
+
 -- |Set variables to be unbounded. By default all variables must be
 -- non-negative.
 --
@@ -45,13 +49,16 @@ setFree = tell . LP Nothing []
 constrain :: String -> [[(Double, String)]] -> [Int] -> LinearProgram
 constrain op lhs rhs = mapM_ go $ zip lhs rhs
   where
-    go (l, r) = tell $ (\x -> LP Nothing [x] []) $ concatMap f l ++ op ++ show r ++ ";"
-    f (n, v)
-      | n == 0 = ""
-      | n > 0  = '+':p n ++ v
-      | n < 0  = p n ++ v
-    f (_, _) = error "How is this even possible?"
+    go (l, r) = tell $ (\x -> LP Nothing [x] []) $ concatMap mult l ++ op ++ show r ++ ";"
+
+mult :: (Double, String) -> String
+mult (n, v)
+  | n == 0 = ""
+  | n > 0  = '+':p n ++ v
+  | n < 0  = p n ++ v
+  where
     p = printf "%.5f"
+mult (_, _) = error "How is this even possible?"
 
 parse :: String -> (Double, [(String, Double)])
 parse s = (opt, vars)
@@ -71,6 +78,7 @@ lpSolve :: LinearProgram -> IO (Double, [(String, Double)])
 lpSolve = liftM parse . readProcess "lp_solve" [] . go . snd . runWriter
   where
     go (LP Nothing _ _) = error "Missing optimization direction"
-    go (LP (Just d) cs vs) =
-        unlines $ d : cs ++ ["free " ++ intercalate ", " vs ++ ";"]
+    go (LP (Just d) cs vs') = unlines $ d : cs ++ [vs]
+      where
+        vs = if null vs' then "" else "free " ++ intercalate ", " vs' ++ ";"
 

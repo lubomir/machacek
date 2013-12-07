@@ -62,6 +62,11 @@ lastSaid :: History -> Int
 lastSaid []    = 0
 lastSaid (e:_) = said e
 
+lastHeard :: HistoryView -> Int
+lastHeard []    = 0
+lastHeard (Performed _:es) = lastHeard es
+lastHeard (Heard n:_) = n
+
 -- | Create a history view for given player.
 --
 historyView :: Player -> History -> HistoryView
