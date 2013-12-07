@@ -4,7 +4,7 @@ import           Algebra
 import           GameTree
 import           LPSolve
 
-import           Control.Arrow                  (first, (***))
+import           Control.Arrow                  (first)
 import           Control.Monad                  (when)
 import           Data.IntMap                    (IntMap)
 import qualified Data.IntMap                    as I
@@ -17,10 +17,9 @@ import           Numeric.LinearAlgebra          (cols, fromBlocks, fromLists,
 import           System.Environment
 import           Text.Printf
 
-parseVars :: [(String, Double)] -> (IntMap Double, IntMap Double)
-parseVars = (toMap *** toMap) . partition ((=='x') . head . fst)
-  where
-    toMap = I.fromList . map (first (read . tail))
+filterVars :: Char -> [(String, Double)] -> IntMap Double
+filterVars v = I.fromList . map (first (read . tail))
+                          . filter ((==v) . head . fst)
 
 getStrategy :: TrieMap Act Int  -- ^Sequence numbering
             -> IntMap Double    -- ^Variables from linear program
@@ -72,25 +71,24 @@ main = do
         ys = map (('y':) . show) [0..cols matF-1]
         lhs = (trans (negate payoffMatrix) <|> trans matF) `matMult` (xs ++ zs)
 
-    (opt, vars') <- lpSolve $ do
+    (opt, vars) <- lpSolve $ do
         maximize $ head zs
         constrain "=" (matE `matMult` xs) (1:repeat 0)
         constrain "<=" lhs (repeat 0)
         setFree zs
     putStrLn $ printf "Value of game is %.3f\n" opt
 
-    let vars = parseVars vars'
+    let xVars = filterVars 'x' vars
         (actsForP1,actsForP2) = partition ((`viewBelongsTo` P1) . fst) $ T.toList acts
-        xVars = fromLists [map snd . I.toAscList $ fst vars]
-        coeff = xVars `multiply` payoffMatrix
+        coeff = fromLists [map snd $ I.toAscList xVars] `multiply` payoffMatrix
     putStrLn "Strategy for player 1"
-    getStrategy xMap (fst vars) actsForP1
+    getStrategy xMap xVars actsForP1
 
     (_,res) <- lpSolve $ do
         minimize $ head $ coeff `matMult` ys
         constrain "=" (matF `matMult` ys) (1:repeat 0)
 
     putStrLn "\nStrategy for player 2"
-    getStrategy yMap (snd $ parseVars res) actsForP2
+    getStrategy yMap (filterVars 'y' res) actsForP2
   where
     m <|> n = fromBlocks [[m, n]]
