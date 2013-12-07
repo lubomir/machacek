@@ -17,6 +17,8 @@ import           Numeric.LinearAlgebra          (cols, fromBlocks, fromLists,
 import           System.Environment
 import           Text.Printf
 
+-- |Only take variables that start with given character.
+--
 filterVars :: Char -> [(String, Double)] -> IntMap Double
 filterVars v = I.fromList . map (first (read . tail))
                           . filter ((==v) . head . fst)
