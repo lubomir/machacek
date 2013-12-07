@@ -59,11 +59,12 @@ getStrategy m vars = mapM_ toDecision
 
         go :: (Int, Double) -> IO ()
         go (_,0) = return ()
-        go (n,p) = putStrLn $ printf "  %s with prob. %.3f" a p
-          where
-            a = case last hist of
-                    Heard _     -> if n == 0 then "Trust" else "Do not trust"
-                    Performed e -> "Say " ++ show (rolled e + n)
+        go (n,1) = putStrLn $ "  " ++ a n
+        go (n,p) = putStrLn $ printf "  %s with prob. %.3f" (a n) p
+
+        a n  = case last hist of
+                Heard _     -> if n == 0 then "Trust" else "Do not trust"
+                Performed e -> "Say " ++ show (rolled e + n)
 
 -- |Print history view in user friendly way.
 --
