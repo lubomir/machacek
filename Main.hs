@@ -4,16 +4,16 @@ import           Algebra
 import           GameTree
 import           LPSolve
 
-import           Control.Arrow         ((***), first)
-import           Control.Monad         (when)
-import           Data.IntMap           (IntMap)
-import qualified Data.IntMap           as I
-import           Data.List             (partition, intercalate)
-import qualified Data.Map              as M
-import           Data.Maybe (fromJust)
+import           Control.Arrow                  (first, (***))
+import           Control.Monad                  (when)
+import           Data.IntMap                    (IntMap)
+import qualified Data.IntMap                    as I
+import           Data.List                      (intercalate, partition)
 import qualified Data.ListTrie.Patricia.Map     as T
 import           Data.ListTrie.Patricia.Map.Ord (TrieMap)
-import           Numeric.LinearAlgebra (fromBlocks, fromLists, rows, trans)
+import           Data.Maybe                     (fromJust)
+import           Numeric.LinearAlgebra          (fromBlocks, fromLists, rows,
+                                                 trans)
 import           System.Environment
 import           Text.Printf
 
@@ -80,7 +80,7 @@ makeStrategy k inp = do
     let (acts, seqs) = mkActions $ mkTree k
         (xMap, _yMap) = getSequenceMap seqs
     let vars = parseVars inp
-    let actsForP1 = filter ((`viewBelongsTo` P1) . fst) $ M.toList acts
+    let actsForP1 = filter ((`viewBelongsTo` P1) . fst) $ T.toList acts
     getStrategy xMap (fst vars) actsForP1
 
 main :: IO ()

@@ -8,7 +8,6 @@ import qualified Data.IntMap.Strict             as I
 import           Data.List                      (foldl', nub, tails)
 import qualified Data.ListTrie.Patricia.Map     as T
 import           Data.ListTrie.Patricia.Map.Ord (TrieMap)
-import           Data.Map.Strict                (Map)
 import qualified Data.Map.Strict                as M
 import           Data.Maybe                     (fromJust, fromMaybe)
 import           Data.Packed.Matrix             (Matrix)
@@ -43,7 +42,7 @@ data GameTree = Nature [(Probability, GameTree)]
               | Leaf Payoff
               deriving (Eq, Show)
 
-type InformationSets a = Map HistoryView a
+type InformationSets a = TrieMap HistoryViewEvent a
 
 otherPlayer :: Player -> Player
 otherPlayer P1 = P2
@@ -123,9 +122,9 @@ getActs :: Player           -- ^Whose actions we want
         -> HistoryView      -- ^Where to store the actions
         -> ([Act], LoopAcc) -- ^(wanted actions, neww loop state)
 getActs p s la n hv =
-    case M.lookup hv (assigned la) of
+    case T.lookup hv (assigned la) of
         Nothing   -> let (acts, pool') = getActsFor n p $ pool la
-                     in (acts, la { assigned = M.insert hv (s,acts) (assigned la)
+                     in (acts, la { assigned = T.insert hv (s,acts) (assigned la)
                                   , pool = pool'
                                   })
         Just (_,acts) -> (acts, la)
@@ -145,7 +144,7 @@ getSequence :: Player -> SeqPair -> Sequence
 getSequence p = fromMaybe [] . M.lookup p
 
 mkActions :: GameTree -> (InformationSets (Sequence, [Act]), [(Sequence, Sequence, Double)])
-mkActions tree = let res = go 1 M.empty (LA ([1..], [1..]) M.empty []) tree
+mkActions tree = let res = go 1 M.empty (LA ([1..], [1..]) T.empty []) tree
                  in (assigned res, matrix res)
   where
     go :: Double -> SeqPair -> LoopAcc -> GameTree -> LoopAcc
@@ -190,7 +189,7 @@ mkConstraintMatrix :: Player                            -- ^Player we are intere
                    -> [[Double]]
 mkConstraintMatrix p m is = (1:replicate (len-1) 0) : map toEq sets
   where
-    sets = filter ((`viewBelongsTo` p) . fst) $ M.toList is
+    sets = filter ((`viewBelongsTo` p) . fst) $ T.toList is
     len  = 1 + length (nub $ concatMap (snd . snd) sets)
     ml s = fromJust $ T.lookup s m
     toEq (_k,(s,as)) = mkRow (ml s) (map (ml . (:s)) as)
