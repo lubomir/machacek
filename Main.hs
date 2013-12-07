@@ -4,7 +4,7 @@ import           Algebra
 import           GameTree
 import           LPSolve
 
-import           Control.Arrow         ((***))
+import           Control.Arrow         ((***), first)
 import           Control.Monad         (when)
 import           Data.IntMap           (IntMap)
 import qualified Data.IntMap           as I
@@ -36,18 +36,10 @@ makeLP k = do
   where
     m <|> n = fromBlocks [[m, n]]
 
-parseVars :: String -> (IntMap Double, IntMap Double)
-parseVars = (toMap *** toMap) . partition ((=='x') . head) . filter hasVar . lines
+parseVars :: [(String, Double)] -> (IntMap Double, IntMap Double)
+parseVars = (toMap *** toMap) . partition ((=='x') . head . fst)
   where
-    hasVar ('x':_) = True
-    hasVar ('z':_) = True
-    hasVar _ = False
-
-    toPair [_:idx,val] = (read idx, read val)
-    toPair _ = error "Parse error"
-
-    toMap :: [String] -> IntMap Double
-    toMap = I.fromList . map (toPair . words)
+    toMap = I.fromList . map (first (read . tail))
 
 getStrategy :: TrieMap Act Int  -- ^Sequence numbering
             -> IntMap Double    -- ^Variables from linear program
@@ -83,20 +75,17 @@ printHistory h = putStrLn $ "Situation: " ++ intercalate ", " (map go h)
         0 -> "rolled " ++ show (rolled e)
         i -> "rolled " ++ show (rolled e) ++ " and said " ++ show i
 
-makeStrategy :: Int -> IO ()
-makeStrategy k = do
+makeStrategy :: Int -> [(String, Double)] -> IO ()
+makeStrategy k inp = do
     let (acts, seqs) = mkActions $ mkTree k
         (xMap, _yMap) = getSequenceMap seqs
-    inp <- getContents
     let vars = parseVars inp
     let actsForP1 = filter ((`viewBelongsTo` P1) . fst) $ M.toList acts
     getStrategy xMap (fst vars) actsForP1
 
 main :: IO ()
 main = do
-    args <- getArgs
-    case args of
-        ["lp", arg] -> makeLP (read arg) >>= print
-        ["strategy", arg] -> makeStrategy $ read arg
-        _ -> do putStrLn "Usage: machacek CMD SIZE"
-                putStrLn "CMD: lp | strategy"
+    [arg] <- getArgs
+    (opt, vars) <- makeLP (read arg)
+    putStrLn $ printf "Value of game is %.3f\n" opt
+    makeStrategy (read arg) vars
