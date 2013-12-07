@@ -8,17 +8,18 @@ module LPSolve ( LinearProgram
 
 import           Control.Monad.Writer
 import           Data.List            (intercalate)
+import           Data.Maybe           (fromMaybe)
 import           Data.Monoid          ()
 import           System.Process
 import           Text.Printf
 
-data LP = LP { dir :: Maybe String
-             , bounds :: [String]
-             , constrains :: [String]
+data LP = LP { dir          :: Maybe String
+             , constrains   :: [String]
+             , bounds       :: [String]
              } deriving (Eq, Show)
 
 instance Monoid LP where
-    mempty = LP { dir = Nothing, bounds = [], constrains = [] }
+    mempty = LP Nothing [] []
 
     (LP Nothing b c) `mappend` (LP d e f) = LP d (b++e) (c++f)
     (LP a b c) `mappend` (LP Nothing e f) = LP a (b++e) (c++f)
@@ -33,6 +34,8 @@ type LinearProgram = Writer LP ()
 maximize :: String -> LinearProgram
 maximize v = tell $ LP (Just $ "max: "++v++";") [] []
 
+-- |Set utility function as pairs (coefficient,variable).
+--
 minimize :: [(Double, String)] -> LinearProgram
 minimize vs = tell $ LP (Just $ "min: "++concatMap mult vs ++ ";") [] []
 
@@ -77,8 +80,7 @@ parse s = (opt, vars)
 lpSolve :: LinearProgram -> IO (Double, [(String, Double)])
 lpSolve = liftM parse . readProcess "lp_solve" [] . go . snd . runWriter
   where
-    go (LP Nothing _ _) = error "Missing optimization direction"
-    go (LP (Just d) cs vs') = unlines $ d : cs ++ [vs]
-      where
-        vs = if null vs' then "" else "free " ++ intercalate ", " vs' ++ ";"
+    go lp = unlines $ fromMaybe err (dir lp) : constrains lp ++ [bds $ bounds lp]
+    err = error "Missing optimization direction"
+    bds vs = if null vs then "" else "free " ++ intercalate ", " vs ++ ";"
 
