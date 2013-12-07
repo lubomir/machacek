@@ -73,7 +73,7 @@ getStrategy m vars = mapM_ toDecision
     var = fromJust . flip I.lookup vars . fromJust . flip T.lookup m
     toDecision (hist, (sq, actions)) =
         when (parent > 0) $ do
-            putStrLn $ "Situation " ++ show hist
+            printHistory hist
             mapM_ go $ zip [0..] $ map ((/parent) . var . (: sq)) actions
       where
         parent = var sq
@@ -85,6 +85,16 @@ getStrategy m vars = mapM_ toDecision
             a = case last hist of
                     Heard _     -> if n == 0 then "Trust" else "Do not trust"
                     Performed e -> "Say " ++ show (rolled e + n)
+
+-- |Print history view in user friendly way.
+--
+printHistory :: HistoryView -> IO ()
+printHistory h = putStrLn $ "Situation: " ++ intercalate ", " (map go h)
+  where
+    go (Heard n) = "heard " ++ show n
+    go (Performed e) = case said e of
+        0 -> "rolled " ++ show (rolled e)
+        i -> "rolled " ++ show (rolled e) ++ " and said " ++ show i
 
 makeStrategy :: Int -> IO ()
 makeStrategy k = do
