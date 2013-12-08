@@ -31,7 +31,7 @@ getStrategy :: TrieMap Act Int  -- ^Sequence numbering
             -> IO ()
 getStrategy m vars = mapM_ toDecision
   where
-    var = fromMaybe 1 . flip I.lookup vars . fromJust . flip T.lookup m
+    var = fromMaybe 0 . flip I.lookup vars . fromJust . flip T.lookup m
     toDecision (hist, (sq, actions)) =
         when (parent > 0) $ do
             printHistory hist
