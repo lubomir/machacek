@@ -110,7 +110,7 @@ data LoopAcc = LA { pool     :: ([Act], [Act])
                   , assigned :: InformationSets (Sequence, [Act])
                   , nextId   :: M.Map Player Int
                   , seqMap   :: M.Map Player SeqMap
-                  , matrix   :: [(Sequence, Sequence, Double)]
+                  , matrix   :: [(Int, Int, Double)]
                   }
 
 getActsFor :: Int                       -- ^How many actions we want
@@ -169,7 +169,7 @@ addSeqMapping p sp a acc = case T.lookup sq sm of
 
 mkActions :: GameTree
           -> ( InformationSets (Sequence, [Act])
-             , [(Sequence, Sequence, Double)]
+             , [(Int, Int, Double)]
              , TrieMap Act Int
              , TrieMap Act Int
              )
@@ -189,8 +189,10 @@ mkActions tree = let res = go 1 M.empty (LA ([1..], [1..])
         natHelper :: LoopAcc -> (Probability, GameTree) -> LoopAcc
         natHelper acc' (p',t) = go (p * p') sp acc' t
 
-    go p sp acc (Leaf x) = let val = (getSequence P1 sp, getSequence P2 sp, p * x)
+    go p sp acc (Leaf x) = let val = (f P1, f P2, p * x)
                            in acc { matrix = val : matrix acc }
+      where
+        f pl = fromJust $ M.lookup pl (seqMap acc) >>= T.lookup (getSequence pl sp)
 
     go p sp acc'' (Decide hv pl ts) = foldl' decHelper acc' $ zip acts ts
       where
@@ -202,16 +204,13 @@ mkActions tree = let res = go 1 M.empty (LA ([1..], [1..])
             acc = addSeqMapping pl sp a acc'''
 
 
-mkPayoffMatrix :: (TrieMap Act Int, TrieMap Act Int)
-               -> [(Sequence, Sequence, Double)] -> Matrix Double
-mkPayoffMatrix (xMap,yMap) ps = mkMatrix (T.size xMap) (T.size yMap) $ toMap ps
+mkPayoffMatrix :: Int -> Int -> [(Int, Int, Double)] -> Matrix Double
+mkPayoffMatrix rows cols ps = mkMatrix rows cols $ toMap ps
   where
-    ml = (fromJust.) . T.lookup
-
-    toMap :: [(Sequence, Sequence, Double)] -> IntMap (IntMap Double)
+    toMap :: [(Int, Int, Double)] -> IntMap (IntMap Double)
     toMap = foldl' ins I.empty
       where
-        ins m (x,y,p) = I.insertWith (I.unionWith (+)) (ml x xMap) (I.singleton (ml y yMap) p) m
+        ins m (x,y,p) = I.insertWith (I.unionWith (+)) x (I.singleton y p) m
 
 mkConstraintMatrix :: Player                            -- ^Player we are interested in
                    -> TrieMap Act Int                   -- ^This players' actions mapping

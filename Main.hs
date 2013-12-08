@@ -64,7 +64,7 @@ main :: IO ()
 main = do
     [arg] <- getArgs
     let (acts, seqs, xMap, yMap) = mkActions $ mkTree (read arg)
-        payoffMatrix = mkPayoffMatrix (xMap, yMap) seqs
+        payoffMatrix = mkPayoffMatrix (T.size xMap) (T.size yMap) seqs
         matE = fromLists $ mkConstraintMatrix P1 xMap acts
         matF = fromLists $ mkConstraintMatrix P2 yMap acts
         xs = map (('x':) . show) [0..rows payoffMatrix-1]
