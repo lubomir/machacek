@@ -169,7 +169,7 @@ addSeqMapping p sp a acc = case T.lookup sq sm of
 
 mkActions :: GameTree
           -> ( InformationSets (Sequence, [Act])
-             , IntMap (IntMap Double)
+             , Matrix Double
              , TrieMap Act Int
              , TrieMap Act Int
              )
@@ -179,11 +179,14 @@ mkActions tree = let res = go 1 M.empty (LA ([1..], [1..])
                                             (M.fromList [ (P1, T.singleton [] 0)
                                                         , (P2, T.singleton [] 0)])
                                             I.empty) tree
-                 in ( assigned res, matrix res
+                 in ( assigned res
+                    , mkMatrix (size P1 res) (size P2 res) (matrix res)
                     , fromMaybe T.empty $ M.lookup P1 $ seqMap res
                     , fromMaybe T.empty $ M.lookup P2 $ seqMap res
                     )
   where
+    size p = fst . getIdent p . nextId
+
     go :: Double -> SeqPair -> LoopAcc -> GameTree -> LoopAcc
     go p sp acc (Nature ts) = foldl' natHelper acc ts
       where
@@ -204,10 +207,6 @@ mkActions tree = let res = go 1 M.empty (LA ([1..], [1..])
         decHelper acc''' (a,t) = go p (addAct pl a sp) acc t
           where
             acc = addSeqMapping pl sp a acc'''
-
-
-mkPayoffMatrix :: Int -> Int -> IntMap (IntMap Double) -> Matrix Double
-mkPayoffMatrix rows cols ps = mkMatrix rows cols $ ps
 
 mkConstraintMatrix :: Player                            -- ^Player we are interested in
                    -> TrieMap Act Int                   -- ^This players' actions mapping
