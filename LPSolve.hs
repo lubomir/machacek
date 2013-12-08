@@ -11,7 +11,6 @@ import           Data.List            (intercalate)
 import           Data.Maybe           (fromMaybe)
 import           Data.Monoid          ()
 import           System.Process
-import           Text.Printf
 
 data LP = LP { dir          :: Maybe String
              , constrains   :: [String]
@@ -50,18 +49,15 @@ setFree = tell . LP Nothing []
 -- number on right hand side.
 --
 constrain :: String -> [[(Double, String)]] -> [Int] -> LinearProgram
-constrain op lhs rhs = tell $ (\x -> LP Nothing [x] []) $ unlines $ map go $ zip lhs rhs
+constrain op lhs rhs = tell $ (\x -> LP Nothing [x] []) $ concatMap go $ zip lhs rhs
   where
-    go (l, r) = concatMap mult l ++ op ++ show r ++ ";"
+    go (l, r) = concatMap mult l ++ op ++ show r ++ ";\n"
 
 mult :: (Double, String) -> String
-mult (n, v)
-  | n == 0 = ""
-  | n > 0  = '+':p n ++ v
-  | n < 0  = p n ++ v
-  where
-    p = printf "%.5f"
-mult (_, _) = error "How is this even possible?"
+mult (n, v) = case compare n 0 of
+                  EQ -> ""
+                  GT -> '+' : show n ++ v
+                  LT -> show n ++ v
 
 parse :: String -> (Double, [(String, Double)])
 parse s = (opt, vars)
