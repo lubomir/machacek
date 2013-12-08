@@ -63,5 +63,5 @@ executable machacek
 
   -- Base language which the package is written in.
   default-language:    Haskell2010
-  Ghc-Options:           -Wall -O2
+  Ghc-Options:           -Wall -O2 -rtsopts
 
