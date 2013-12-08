@@ -110,7 +110,7 @@ data LoopAcc = LA { pool     :: ([Act], [Act])
                   , assigned :: InformationSets (Sequence, [Act])
                   , nextId   :: M.Map Player Int
                   , seqMap   :: M.Map Player SeqMap
-                  , matrix   :: [(Int, Int, Double)]
+                  , matrix   :: IntMap (IntMap Double)
                   }
 
 getActsFor :: Int                       -- ^How many actions we want
@@ -169,7 +169,7 @@ addSeqMapping p sp a acc = case T.lookup sq sm of
 
 mkActions :: GameTree
           -> ( InformationSets (Sequence, [Act])
-             , [(Int, Int, Double)]
+             , IntMap (IntMap Double)
              , TrieMap Act Int
              , TrieMap Act Int
              )
@@ -178,10 +178,11 @@ mkActions tree = let res = go 1 M.empty (LA ([1..], [1..])
                                             M.empty
                                             (M.fromList [ (P1, T.singleton [] 0)
                                                         , (P2, T.singleton [] 0)])
-                                            []) tree
+                                            I.empty) tree
                  in ( assigned res, matrix res
                     , fromMaybe T.empty $ M.lookup P1 $ seqMap res
-                    , fromMaybe T.empty $ M.lookup P2 $ seqMap res)
+                    , fromMaybe T.empty $ M.lookup P2 $ seqMap res
+                    )
   where
     go :: Double -> SeqPair -> LoopAcc -> GameTree -> LoopAcc
     go p sp acc (Nature ts) = foldl' natHelper acc ts
@@ -190,9 +191,10 @@ mkActions tree = let res = go 1 M.empty (LA ([1..], [1..])
         natHelper acc' (p',t) = go (p * p') sp acc' t
 
     go p sp acc (Leaf x) = let val = (f P1, f P2, p * x)
-                           in acc { matrix = val : matrix acc }
+                           in acc { matrix = ins val (matrix acc) }
       where
         f pl = fromJust $ M.lookup pl (seqMap acc) >>= T.lookup (getSequence pl sp)
+        ins (r,c,v) = I.insertWith (I.unionWith (+)) r (I.singleton c v)
 
     go p sp acc'' (Decide hv pl ts) = foldl' decHelper acc' $ zip acts ts
       where
@@ -204,13 +206,8 @@ mkActions tree = let res = go 1 M.empty (LA ([1..], [1..])
             acc = addSeqMapping pl sp a acc'''
 
 
-mkPayoffMatrix :: Int -> Int -> [(Int, Int, Double)] -> Matrix Double
-mkPayoffMatrix rows cols ps = mkMatrix rows cols $ toMap ps
-  where
-    toMap :: [(Int, Int, Double)] -> IntMap (IntMap Double)
-    toMap = foldl' ins I.empty
-      where
-        ins m (x,y,p) = I.insertWith (I.unionWith (+)) x (I.singleton y p) m
+mkPayoffMatrix :: Int -> Int -> IntMap (IntMap Double) -> Matrix Double
+mkPayoffMatrix rows cols ps = mkMatrix rows cols $ ps
 
 mkConstraintMatrix :: Player                            -- ^Player we are interested in
                    -> TrieMap Act Int                   -- ^This players' actions mapping
