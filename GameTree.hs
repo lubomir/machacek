@@ -168,11 +168,7 @@ addSeqMapping p sp a acc = case T.lookup sq sm of
     sm = fromMaybe T.empty (M.lookup p $ seqMap acc)
 
 mkActions :: GameTree
-          -> ( InformationSets (Sequence, [Act])
-             , Matrix Double
-             , TrieMap Act Int
-             , TrieMap Act Int
-             )
+          -> (InformationSets (Sequence, [Act]), Matrix Double, SeqMap, SeqMap)
 mkActions tree = let res = go 1 M.empty (LA ([1..], [1..])
                                             T.empty
                                             M.empty
@@ -181,8 +177,8 @@ mkActions tree = let res = go 1 M.empty (LA ([1..], [1..])
                                             I.empty) tree
                  in ( assigned res
                     , mkMatrix (size P1 res) (size P2 res) (matrix res)
-                    , fromMaybe T.empty $ M.lookup P1 $ seqMap res
-                    , fromMaybe T.empty $ M.lookup P2 $ seqMap res
+                    , fromJust $ M.lookup P1 $ seqMap res
+                    , fromJust $ M.lookup P2 $ seqMap res
                     )
   where
     size p = fst . getIdent p . nextId
