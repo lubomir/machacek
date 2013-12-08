@@ -12,8 +12,6 @@ import           Data.List                      (intercalate, partition)
 import qualified Data.ListTrie.Patricia.Map     as T
 import           Data.ListTrie.Patricia.Map.Ord (TrieMap)
 import           Data.Maybe                     (fromJust, fromMaybe)
-import           Numeric.LinearAlgebra          (cols, fromBlocks, fromLists,
-                                                 multiply, rows, trans)
 import           System.Environment
 import           Text.Printf
 
@@ -66,10 +64,10 @@ main = do
     let (acts, payoffMatrix, xMap, yMap) = mkActions $ mkTree (read arg)
         matE = fromLists $ mkConstraintMatrix P1 xMap acts
         matF = fromLists $ mkConstraintMatrix P2 yMap acts
-        xs = map (('x':) . show) [0..rows payoffMatrix-1]
-        zs = map (('z':) . show) [0..rows matF-1]
-        ys = map (('y':) . show) [0..cols matF-1]
-        lhs = (trans (negate payoffMatrix) <|> trans matF) `matMult` (xs ++ zs)
+        xs = map (('x':) . show) [0..nrows payoffMatrix-1]
+        zs = map (('z':) . show) [0..nrows matF-1]
+        ys = map (('y':) . show) [0..ncols matF-1]
+        lhs = (transpose (negate payoffMatrix) <|> transpose matF) `matMult` (xs ++ zs)
 
     (opt, vars) <- lpSolve $ do
         maximize $ head zs
@@ -80,7 +78,7 @@ main = do
 
     let xVars = filterVars 'x' vars
         (actsForP1,actsForP2) = partition ((`viewBelongsTo` P1) . fst) $ T.toList acts
-        coeff = fromLists [map snd $ I.toAscList xVars] `multiply` payoffMatrix
+        coeff = fromLists [map snd $ I.toAscList xVars] `multStd` payoffMatrix
     putStrLn "Strategy for player 1"
     getStrategy xMap xVars actsForP1
 
@@ -90,5 +88,3 @@ main = do
 
     putStrLn "\nStrategy for player 2"
     getStrategy yMap (filterVars 'y' res) actsForP2
-  where
-    m <|> n = fromBlocks [[m, n]]

@@ -10,7 +10,6 @@ import qualified Data.ListTrie.Patricia.Map     as T
 import           Data.ListTrie.Patricia.Map.Ord (TrieMap)
 import qualified Data.Map.Strict                as M
 import           Data.Maybe                     (fromJust, fromMaybe)
-import           Data.Packed.Matrix             (Matrix)
 import           Data.Tuple                     (swap)
 
 data Player = P1 | P2
