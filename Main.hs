@@ -63,9 +63,8 @@ printHistory h = putStrLn $ "Situation: " ++ intercalate ", " (map go h)
 main :: IO ()
 main = do
     [arg] <- getArgs
-    let (acts, seqs) = mkActions $ mkTree (read arg)
-        (xMap, yMap) = getSequenceMap seqs
-        payoffMatrix = mkPayoffMatrix seqs
+    let (acts, seqs, xMap, yMap) = mkActions $ mkTree (read arg)
+        payoffMatrix = mkPayoffMatrix (xMap, yMap) seqs
         matE = fromLists $ mkConstraintMatrix P1 xMap acts
         matF = fromLists $ mkConstraintMatrix P2 yMap acts
         xs = map (('x':) . show) [0..rows payoffMatrix-1]

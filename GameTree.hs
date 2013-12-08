@@ -5,7 +5,7 @@ import           Algebra
 import           Control.Arrow                  (first, second)
 import           Data.IntMap.Strict             (IntMap)
 import qualified Data.IntMap.Strict             as I
-import           Data.List                      (foldl', nub, tails)
+import           Data.List                      (foldl', nub)
 import qualified Data.ListTrie.Patricia.Map     as T
 import           Data.ListTrie.Patricia.Map.Ord (TrieMap)
 import qualified Data.Map.Strict                as M
@@ -104,8 +104,12 @@ mkTree k = rollDice [] P1
       | otherwise          = Leaf $ payoffFor p
     call _ _ = error "This can never happen"
 
+type SeqMap = TrieMap Act Int
+
 data LoopAcc = LA { pool     :: ([Act], [Act])
                   , assigned :: InformationSets (Sequence, [Act])
+                  , nextId   :: M.Map Player Int
+                  , seqMap   :: M.Map Player SeqMap
                   , matrix   :: [(Sequence, Sequence, Double)]
                   }
 
@@ -148,9 +152,36 @@ addAct p a = M.insertWith (++) p [a]
 getSequence :: Player -> SeqPair -> Sequence
 getSequence p = fromMaybe [] . M.lookup p
 
-mkActions :: GameTree -> (InformationSets (Sequence, [Act]), [(Sequence, Sequence, Double)])
-mkActions tree = let res = go 1 M.empty (LA ([1..], [1..]) T.empty []) tree
-                 in (assigned res, matrix res)
+getIdent :: Player -> M.Map Player Int -> (Int, M.Map Player Int)
+getIdent p m = case M.lookup p m of
+    Just id_ -> (id_, M.update (const (Just $ id_+1)) p m)
+    Nothing  -> (1, M.insert p 2 m)
+
+addSeqMapping :: Player -> SeqPair -> Act -> LoopAcc -> LoopAcc
+addSeqMapping p sp a acc = case T.lookup sq sm of
+    Nothing -> let (id_, newIds) = getIdent p (nextId acc)
+                   newMap = T.insert sq id_ sm
+               in acc { nextId = newIds, seqMap = M.insert p newMap (seqMap acc) }
+    Just _  -> acc
+  where
+    sq = a : fromMaybe [] (M.lookup p sp)
+    sm = fromMaybe T.empty (M.lookup p $ seqMap acc)
+
+mkActions :: GameTree
+          -> ( InformationSets (Sequence, [Act])
+             , [(Sequence, Sequence, Double)]
+             , TrieMap Act Int
+             , TrieMap Act Int
+             )
+mkActions tree = let res = go 1 M.empty (LA ([1..], [1..])
+                                            T.empty
+                                            M.empty
+                                            (M.fromList [ (P1, T.singleton [] 0)
+                                                        , (P2, T.singleton [] 0)])
+                                            []) tree
+                 in ( assigned res, matrix res
+                    , fromMaybe T.empty $ M.lookup P1 $ seqMap res
+                    , fromMaybe T.empty $ M.lookup P2 $ seqMap res)
   where
     go :: Double -> SeqPair -> LoopAcc -> GameTree -> LoopAcc
     go p sp acc (Nature ts) = foldl' natHelper acc ts
@@ -164,23 +195,17 @@ mkActions tree = let res = go 1 M.empty (LA ([1..], [1..]) T.empty []) tree
     go p sp acc'' (Decide hv pl ts) = foldl' decHelper acc' $ zip acts ts
       where
         (acts, acc') = getActs pl (getSequence pl sp) acc'' (length ts) hv
+
         decHelper :: LoopAcc -> (Act, GameTree) -> LoopAcc
-        decHelper acc (a,t) = go p (addAct pl a sp) acc t
+        decHelper acc''' (a,t) = go p (addAct pl a sp) acc t
+          where
+            acc = addSeqMapping pl sp a acc'''
 
-getSequenceMap :: [(Sequence, Sequence, a)]
-               -> (TrieMap Act Int, TrieMap Act Int)
-getSequenceMap ts = let (xs', ys', _) = unzip3 ts
-                    in (buildMap xs', buildMap ys')
-  where
-    buildMap l = fst $ foldl' ins (T.empty, 0) $ reverse $ concatMap tails l
-    ins (m, n) x = case T.lookup x m of
-                    Nothing -> (T.insert x n m, n+1)
-                    Just _  -> (m, n)
 
-mkPayoffMatrix :: [(Sequence, Sequence, Double)] -> Matrix Double
-mkPayoffMatrix ps = mkMatrix (T.size xMap) (T.size yMap) $ toMap ps
+mkPayoffMatrix :: (TrieMap Act Int, TrieMap Act Int)
+               -> [(Sequence, Sequence, Double)] -> Matrix Double
+mkPayoffMatrix (xMap,yMap) ps = mkMatrix (T.size xMap) (T.size yMap) $ toMap ps
   where
-    (xMap, yMap) = getSequenceMap ps
     ml = (fromJust.) . T.lookup
 
     toMap :: [(Sequence, Sequence, Double)] -> IntMap (IntMap Double)
