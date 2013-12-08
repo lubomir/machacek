@@ -50,9 +50,9 @@ setFree = tell . LP Nothing []
 -- number on right hand side.
 --
 constrain :: String -> [[(Double, String)]] -> [Int] -> LinearProgram
-constrain op lhs rhs = mapM_ go $ zip lhs rhs
+constrain op lhs rhs = tell $ (\x -> LP Nothing [x] []) $ unlines $ map go $ zip lhs rhs
   where
-    go (l, r) = tell $ (\x -> LP Nothing [x] []) $ concatMap mult l ++ op ++ show r ++ ";"
+    go (l, r) = concatMap mult l ++ op ++ show r ++ ";"
 
 mult :: (Double, String) -> String
 mult (n, v)
