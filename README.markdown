@@ -51,6 +51,6 @@ Execute
 
 where `K` denotes the size of the dice for which you want to find the strategy.
 
-The program assummes `lp_solve` is accessible through `$PATH`. If that is not
-the case, modify the command at the bottom of `LPSolve.hs` module and recopile
+The program assumes `lp_solve` is accessible through `$PATH`. If that is not
+the case, modify the command at the bottom of `LPSolve.hs` module and recompile
 the program (`cabal build`).
