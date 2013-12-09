@@ -1,17 +1,13 @@
 module GameTree where
 
-import           Algebra
-
 import           Control.Arrow                  (first, second)
-import           Data.IntMap.Strict             (IntMap)
-import qualified Data.IntMap.Strict             as I
 import           Data.List                      (foldl', nub)
 import qualified Data.ListTrie.Patricia.Map     as T
 import           Data.ListTrie.Patricia.Map.Ord (TrieMap)
 import qualified Data.Map.Strict                as M
 import           Data.Maybe                     (fromJust, fromMaybe)
-import           Data.Packed.Matrix             (Matrix)
 import           Data.Tuple                     (swap)
+import           Math.LinearAlgebra.Sparse.Matrix
 
 data Player = P1 | P2
     deriving (Eq, Ord, Show)
@@ -110,7 +106,7 @@ data LoopAcc = LA { pool     :: ([Act], [Act])
                   , assigned :: InformationSets (Sequence, [Act])
                   , nextId   :: M.Map Player Int
                   , seqMap   :: M.Map Player SeqMap
-                  , matrix   :: IntMap (IntMap Double)
+                  , matrix   :: SparseMatrix Double
                   }
 
 getActsFor :: Int                       -- ^How many actions we want
@@ -155,7 +151,7 @@ getSequence p = fromMaybe [] . M.lookup p
 getIdent :: Player -> M.Map Player Int -> (Int, M.Map Player Int)
 getIdent p m = case M.lookup p m of
     Just id_ -> (id_, M.update (const (Just $ id_+1)) p m)
-    Nothing  -> (1, M.insert p 2 m)
+    Nothing  -> (2, M.insert p 3 m)
 
 addSeqMapping :: Player -> SeqPair -> Act -> LoopAcc -> LoopAcc
 addSeqMapping p sp a acc = case T.lookup sq sm of
@@ -168,15 +164,15 @@ addSeqMapping p sp a acc = case T.lookup sq sm of
     sm = fromMaybe T.empty (M.lookup p $ seqMap acc)
 
 mkActions :: GameTree
-          -> (InformationSets (Sequence, [Act]), Matrix Double, SeqMap, SeqMap)
+          -> (InformationSets (Sequence, [Act]), SparseMatrix Double, SeqMap, SeqMap)
 mkActions tree = let res = go 1 M.empty (LA ([1..], [1..])
                                             T.empty
                                             M.empty
-                                            (M.fromList [ (P1, T.singleton [] 0)
-                                                        , (P2, T.singleton [] 0)])
-                                            I.empty) tree
+                                            (M.fromList [ (P1, T.singleton [] 1)
+                                                        , (P2, T.singleton [] 1)])
+                                            emptyMx) tree
                  in ( assigned res
-                    , mkMatrix (size P1 res) (size P2 res) (matrix res)
+                    , SM { dims = (size P1 res, size P2 res), mx = mx (matrix res) }
                     , fromJust $ M.lookup P1 $ seqMap res
                     , fromJust $ M.lookup P2 $ seqMap res
                     )
@@ -190,10 +186,10 @@ mkActions tree = let res = go 1 M.empty (LA ([1..], [1..])
         natHelper acc' (p',t) = go (p * p') sp acc' t
 
     go p sp acc (Leaf x) = let val = (f P1, f P2, p * x)
-                           in acc { matrix = ins val (matrix acc) }
+                           in acc { matrix = ins' val (matrix acc) }
       where
+        ins' (r,c,v) m = ins m ((r,c), (m # (r,c) + v))
         f pl = fromJust $ M.lookup pl (seqMap acc) >>= T.lookup (getSequence pl sp)
-        ins (r,c,v) = I.insertWith (I.unionWith (+)) r (I.singleton c v)
 
     go p sp acc'' (Decide hv pl ts) = foldl' decHelper acc' $ zip acts ts
       where
@@ -207,8 +203,8 @@ mkActions tree = let res = go 1 M.empty (LA ([1..], [1..])
 mkConstraintMatrix :: Player                            -- ^Player we are interested in
                    -> TrieMap Act Int                   -- ^This players' actions mapping
                    -> InformationSets (Sequence, [Act]) -- ^All info sets
-                   -> [[Double]]
-mkConstraintMatrix p m is = (1:replicate (len-1) 0) : map toEq sets
+                   -> SparseMatrix Double
+mkConstraintMatrix p m is = sparseMx $ (1:replicate (len-1) 0) : map toEq sets
   where
     sets = filter ((`viewBelongsTo` p) . fst) $ T.toList is
     len  = 1 + length (nub $ concatMap (snd . snd) sets)
@@ -216,10 +212,10 @@ mkConstraintMatrix p m is = (1:replicate (len-1) 0) : map toEq sets
     toEq (_k,(s,as)) = mkRow (ml s) (map (ml . (:s)) as)
 
     mkRow :: Int -> [Int] -> [Double]
-    mkRow x vs = reverse (go [] 0 vs)
+    mkRow x vs = reverse (go [] 1 vs)
       where
         go acc n (y:ys)
-            | n >= len  = error "This should never happen"
+            | n > len  = error "This should never happen"
             | n == x    = go (-1:acc) (n+1) (y:ys)
             | n == y    = go (1:acc)  (n+1) ys
             | otherwise = go (0:acc)  (n+1) (y:ys)

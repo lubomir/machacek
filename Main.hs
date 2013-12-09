@@ -1,6 +1,5 @@
 module Main where
 
-import           Algebra
 import           GameTree
 import           LPSolve
 
@@ -12,10 +11,17 @@ import           Data.List                      (intercalate, partition)
 import qualified Data.ListTrie.Patricia.Map     as T
 import           Data.ListTrie.Patricia.Map.Ord (TrieMap)
 import           Data.Maybe                     (fromJust, fromMaybe)
-import           Numeric.LinearAlgebra          (cols, fromBlocks, fromLists,
-                                                 multiply, rows, trans)
 import           System.Environment
 import           Text.Printf
+import           Math.LinearAlgebra.Sparse.Matrix
+
+-- | Given a matrix and a column vector of variables, create a column vector
+-- produced by matrix multiplication. Tuples are (coefficient, variable).
+--
+matMult :: (Show a, Show b) => SparseMatrix a -> [b] -> [[(a, b)]]
+matMult !m vs = map go $ I.elems $ mx m
+  where
+    go r = map (\(k,v) -> (v,vs !! (k-1))) $ I.assocs r
 
 -- |Only take variables that start with given character.
 --
@@ -31,7 +37,7 @@ getStrategy :: TrieMap Act Int  -- ^Sequence numbering
             -> IO ()
 getStrategy m vars = mapM_ toDecision
   where
-    var = fromMaybe 0 . flip I.lookup vars . fromJust . flip T.lookup m
+    var = fromMaybe 0 . flip I.lookup vars . (flip (-) 1) . fromJust . flip T.lookup m
     toDecision (hist, (sq, actions)) =
         when (parent > 0) $ do
             printHistory hist
@@ -63,11 +69,11 @@ printHistory h = putStrLn $ "Situation: " ++ intercalate ", " (map go h)
 run :: Int -> IO ()
 run k = do
     let (acts, payoffMatrix, xMap, yMap) = mkActions $ mkTree k
-        matE = fromLists $ mkConstraintMatrix P1 xMap acts
-        matF = fromLists $ mkConstraintMatrix P2 yMap acts
-        xs = map (('x':) . show) [0..rows payoffMatrix-1]
-        zs = map (('z':) . show) [0..rows matF-1]
-        ys = map (('y':) . show) [0..cols matF-1]
+        matE = mkConstraintMatrix P1 xMap acts
+        matF = mkConstraintMatrix P2 yMap acts
+        xs = map (('x':) . show) [0..height payoffMatrix-1]
+        zs = map (('z':) . show) [0..height matF-1]
+        ys = map (('y':) . show) [0..width matF-1]
         lhs = (trans (negate payoffMatrix) <|> trans matF) `matMult` (xs ++ zs)
 
     (opt, vars) <- lpSolve $ do
@@ -79,7 +85,8 @@ run k = do
 
     let xVars = filterVars 'x' vars
         (actsForP1,actsForP2) = partition ((`viewBelongsTo` P1) . fst) $ T.toList acts
-        coeff = fromLists [map snd $ I.toAscList xVars] `multiply` payoffMatrix
+        coeff = sparseMx [map snd $ I.toAscList xVars] `mul` payoffMatrix
+
     putStrLn "Strategy for player 1"
     getStrategy xMap xVars actsForP1
 
@@ -90,7 +97,7 @@ run k = do
     putStrLn "\nStrategy for player 2"
     getStrategy yMap (filterVars 'y' res) actsForP2
   where
-    m <|> n = fromBlocks [[m, n]]
+    m <|> n = hconcat [m, n]
 
 main :: IO ()
 main = do

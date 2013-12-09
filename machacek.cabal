@@ -43,7 +43,6 @@ executable machacek
 
   -- Modules included in this executable, other than Main.
   other-modules:       GameTree
-                     , Algebra
                      , LPSolve
 
   -- LANGUAGE extensions used by modules in this package.
@@ -52,16 +51,15 @@ executable machacek
   -- Other library packages from which modules are imported.
   build-depends:       base >=4.6 && <4.7
                      , containers >=0.5 && <0.6
-                     , vector >= 0.10 && < 0.11
                      , list-tries >= 0.5 && < 0.6
-                     , hmatrix >= 0.15 && < 0.16
                      , process >= 1.2 && < 1.3
                      , mtl     >= 2.1 && < 2.2
+                     , sparse-lin-alg >= 0.4 && < 0.5
 
   -- Directories containing source files.
   -- hs-source-dirs:
 
   -- Base language which the package is written in.
   default-language:    Haskell2010
-  Ghc-Options:           -Wall -O2 -rtsopts
+  Ghc-Options:           -Wall -O2 -rtsopts -fprof-auto
 
