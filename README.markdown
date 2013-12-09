@@ -50,3 +50,7 @@ Execute
     $ dist/build/machacek/machacek K
 
 where `K` denotes the size of the dice for which you want to find the strategy.
+
+The program assummes `lp_solve` is accessible through `$PATH`. If that is not
+the case, modify the command at the bottom of `LPSolve.hs` module and recopile
+the program (`cabal build`).
