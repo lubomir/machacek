@@ -60,10 +60,9 @@ printHistory h = putStrLn $ "Situation: " ++ intercalate ", " (map go h)
         0 -> "rolled " ++ show (rolled e)
         i -> "rolled " ++ show (rolled e) ++ " and said " ++ show i
 
-main :: IO ()
-main = do
-    [arg] <- getArgs
-    let (acts, payoffMatrix, xMap, yMap) = mkActions $ mkTree (read arg)
+run :: Int -> IO ()
+run k = do
+    let (acts, payoffMatrix, xMap, yMap) = mkActions $ mkTree k
         matE = fromLists $ mkConstraintMatrix P1 xMap acts
         matF = fromLists $ mkConstraintMatrix P2 yMap acts
         xs = map (('x':) . show) [0..rows payoffMatrix-1]
@@ -92,3 +91,10 @@ main = do
     getStrategy yMap (filterVars 'y' res) actsForP2
   where
     m <|> n = fromBlocks [[m, n]]
+
+main :: IO ()
+main = do
+    args <- getArgs
+    case args of
+        [arg] -> run $ read arg
+        _     -> putStrLn "Usage: machacek K"
