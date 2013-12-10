@@ -1,7 +1,7 @@
 module LPSolve ( LinearProgram
                , lpSolve
-               , maximize
-               , minimize
+               , OptimizationDir(..)
+               , optimize
                , constrain
                , setFree
                ) where
@@ -15,19 +15,17 @@ import           Text.Printf
 
 type LinearProgram = ReaderT Handle IO ()
 
--- |Set a variable to maximize.
---
-maximize :: String -> LinearProgram
-maximize v = do
-    h <- ask
-    liftIO $ hPutStr h "max: " >> hPutStr h v >> hPutStrLn h ";"
+data OptimizationDir = Min | Max deriving (Eq, Show)
 
--- |Set utility function as pairs (coefficient,variable).
+-- |Set up utility function.
 --
-minimize :: [(Double, String)] -> LinearProgram
-minimize vs = do
+optimize :: OptimizationDir -> [(Double, String)] -> LinearProgram
+optimize dir vs = do
     h <- ask
-    liftIO $ hPutStr h "min: " >> mapM (mult h) vs >> hPutStrLn h ";"
+    liftIO $ hPutStr h d >> mapM (mult h) vs >> hPutStrLn h ";"
+  where d = case dir of
+                Min -> "min: "
+                Max -> "max: "
 
 -- |Set variables to be unbounded. By default all variables must be
 -- non-negative.

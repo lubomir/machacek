@@ -81,7 +81,7 @@ run k = do
         lhs = (trans (negate payoffMatrix) <|> trans matF) `matMult` (xs ++ zs)
 
     (opt, vars) <- lpSolve $ do
-        maximize $ head zs
+        optimize Max [(1,head zs)]
         constrain "=" (matE `matMult` xs) (1:repeat 0)
         constrain "<=" lhs (repeat 0)
         setFree zs
@@ -95,7 +95,7 @@ run k = do
     getStrategy xMap xVars actsForP1
 
     (_,res) <- lpSolve $ do
-        minimize $ head $ coeff `matMult` ys
+        optimize Min $ head $ coeff `matMult` ys
         constrain "=" (matF `matMult` ys) (1:repeat 0)
 
     putStrLn "\nStrategy for player 2"
