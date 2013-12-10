@@ -11,6 +11,7 @@ import           Data.List            (intercalate)
 import           Data.Maybe           (fromMaybe)
 import           Data.Monoid          ()
 import           System.Process
+import           Text.Printf
 
 data LP = LP { dir          :: Maybe String
              , constrains   :: [String]
@@ -53,11 +54,9 @@ constrain op lhs rhs = tell $ (\x -> LP Nothing [x] []) $ concatMap go $ zip lhs
   where
     go (l, r) = concatMap mult l ++ op ++ show r ++ ";\n"
 
+{-# INLINE mult #-}
 mult :: (Double, String) -> String
-mult (n, v) = case compare n 0 of
-                  EQ -> ""
-                  GT -> '+' : show n ++ v
-                  LT -> show n ++ v
+mult = uncurry $ printf "%+.5f%s"
 
 parse :: String -> (Double, [(String, Double)])
 parse s = (opt, vars)
