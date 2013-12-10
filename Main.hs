@@ -18,10 +18,14 @@ import           Math.LinearAlgebra.Sparse.Matrix
 -- | Given a matrix and a column vector of variables, create a column vector
 -- produced by matrix multiplication. Tuples are (coefficient, variable).
 --
-matMult :: (Show a, Show b) => SparseMatrix a -> [b] -> [[(a, b)]]
-matMult !m vs = map go $ I.elems $ mx m
+matMult :: SparseMatrix a -> [b] -> [[(a, b)]]
+matMult !m vs' = map (reverse . go [] 1 vs' . I.assocs) $ I.elems $ mx m
   where
-    go r = map (\(k,v) -> (v,vs !! (k-1))) $ I.assocs r
+    go acc _ [] _ = acc
+    go acc _ _ [] = acc
+    go acc n (v:vs) y@((i,c):rs)
+      | n == i    = go ((c,v):acc) (n+1) vs rs
+      | otherwise = go acc         (n+1) vs y
 
 -- |Only take variables that start with given character.
 --
