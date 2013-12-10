@@ -188,7 +188,7 @@ mkActions tree = let res = go 1 M.empty (LA ([1..], [1..])
     go p sp acc (Leaf x) = let val = (f P1, f P2, p * x)
                            in acc { matrix = ins' val (matrix acc) }
       where
-        ins' (r,c,v) m = ins m ((r,c), (m # (r,c) + v))
+        ins' (r,c,v) m = ins m ((r,c), m # (r,c) + v)
         f pl = fromJust $ M.lookup pl (seqMap acc) >>= T.lookup (getSequence pl sp)
 
     go p sp acc'' (Decide hv pl ts) = foldl' decHelper acc' $ zip acts ts
