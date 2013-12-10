@@ -20,8 +20,7 @@ data OptimizationDir = Min | Max deriving (Eq, Show)
 -- |Set up utility function.
 --
 optimize :: OptimizationDir -> [(Double, String)] -> LinearProgram
-optimize dir vs = do
-    h <- ask
+optimize dir vs = ask >>= \h ->
     liftIO $ hPutStr h d >> mapM (mult h) vs >> hPutStrLn h ";"
   where d = case dir of
                 Min -> "min: "
@@ -31,8 +30,7 @@ optimize dir vs = do
 -- non-negative.
 --
 setFree :: [String] -> LinearProgram
-setFree vs = do
-    h <- ask
+setFree vs = ask >>= \h ->
     liftIO $ hPutStr h $ "free " ++ intercalate ", " vs ++ ";"
 
 -- |Set up constrains. First argument is the operator, second argument is left
@@ -40,8 +38,7 @@ setFree vs = do
 -- number on right hand side.
 --
 constrain :: String -> [[(Double, String)]] -> [Int] -> LinearProgram
-constrain op lhs rhs = do
-    h <- ask
+constrain op lhs rhs = ask >>= \h ->
     liftIO $ mapM_ (go h) $ zip lhs rhs
   where
     go h (l, r) = mapM_ (mult h) l >> hPutStr h op >> hPrint h r >> hPutStrLn h ";"
