@@ -19,7 +19,7 @@ import           Math.LinearAlgebra.Sparse.Matrix
 -- produced by matrix multiplication. Tuples are (coefficient, variable).
 --
 matMult :: SparseMatrix a -> [b] -> [[(a, b)]]
-matMult !m vs' = map (reverse . go [] 1 vs' . I.assocs) $ I.elems $ mx m
+matMult m vs' = map (reverse . go [] 1 vs' . I.assocs) $ I.elems $ mx m
   where
     go acc _ [] _ = acc
     go acc _ _ [] = acc

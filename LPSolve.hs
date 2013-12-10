@@ -6,57 +6,51 @@ module LPSolve ( LinearProgram
                , setFree
                ) where
 
-import           Control.Monad.Writer
+import           Control.Monad.Reader
 import           Data.List            (intercalate)
-import           Data.Maybe           (fromMaybe)
-import           Data.Monoid          ()
+import           System.Directory     (removeFile)
+import           System.IO
 import           System.Process
 import           Text.Printf
 
-data LP = LP { dir          :: Maybe String
-             , constrains   :: [String]
-             , bounds       :: [String]
-             } deriving (Eq, Show)
-
-instance Monoid LP where
-    mempty = LP Nothing [] []
-
-    (LP Nothing b c) `mappend` (LP d e f) = LP d (b++e) (c++f)
-    (LP a b c) `mappend` (LP Nothing e f) = LP a (b++e) (c++f)
-    (LP a b c) `mappend` (LP d e f)
-        | a == d = LP a (b++e) (c++f)
-        | otherwise = error "Can not combine two directions"
-
-type LinearProgram = Writer LP ()
+type LinearProgram = ReaderT Handle IO ()
 
 -- |Set a variable to maximize.
 --
 maximize :: String -> LinearProgram
-maximize v = tell $ LP (Just $ "max: "++v++";") [] []
+maximize v = do
+    h <- ask
+    liftIO $ hPutStr h "max: " >> hPutStr h v >> hPutStrLn h ";"
 
 -- |Set utility function as pairs (coefficient,variable).
 --
 minimize :: [(Double, String)] -> LinearProgram
-minimize vs = tell $ LP (Just $ "min: "++concatMap mult vs ++ ";") [] []
+minimize vs = do
+    h <- ask
+    liftIO $ hPutStr h "min: " >> mapM (mult h) vs >> hPutStrLn h ";"
 
 -- |Set variables to be unbounded. By default all variables must be
 -- non-negative.
 --
 setFree :: [String] -> LinearProgram
-setFree = tell . LP Nothing []
+setFree vs = do
+    h <- ask
+    liftIO $ hPutStr h $ "free " ++ intercalate ", " vs ++ ";"
 
 -- |Set up constrains. First argument is the operator, second argument is left
 -- hand side as pairs (coefficient, variable), third argument is the single
 -- number on right hand side.
 --
 constrain :: String -> [[(Double, String)]] -> [Int] -> LinearProgram
-constrain op lhs rhs = tell $ (\x -> LP Nothing [x] []) $ concatMap go $ zip lhs rhs
+constrain op lhs rhs = do
+    h <- ask
+    liftIO $ mapM_ (go h) $ zip lhs rhs
   where
-    go (l, r) = concatMap mult l ++ op ++ show r ++ ";\n"
+    go h (l, r) = mapM_ (mult h) l >> hPutStr h op >> hPrint h r >> hPutStrLn h ";"
 
 {-# INLINE mult #-}
-mult :: (Double, String) -> String
-mult = uncurry $ printf "%+.5f%s"
+mult :: Handle -> (Double, String) -> IO ()
+mult h = uncurry (hPrintf h "%+.5f%s")
 
 parse :: String -> (Double, [(String, Double)])
 parse s = (opt, vars)
@@ -73,9 +67,10 @@ parse s = (opt, vars)
 -- for all variables.
 --
 lpSolve :: LinearProgram -> IO (Double, [(String, Double)])
-lpSolve = liftM parse . readProcess "lp_solve" [] . go . snd . runWriter
-  where
-    go lp = unlines $ fromMaybe err (dir lp) : constrains lp ++ [bds $ bounds lp]
-    err = error "Missing optimization direction"
-    bds vs = if null vs then "" else "free " ++ intercalate ", " vs ++ ";"
-
+lpSolve prog = do
+    (name,h) <- openTempFile "/tmp" "machacek.lp"
+    runReaderT prog h
+    hClose h
+    res <- readProcess "lp_solve" [name] ""
+    removeFile name
+    return $ parse res
