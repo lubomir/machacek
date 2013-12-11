@@ -20,18 +20,12 @@ is exponential in terms of the size of dice.
 
 # Installation
 
-You will need to have [lp_solve], [GSL] and [LAPACK] installed. For building,
-you will also need GHC compiler and cabal-install (preferably at least version
-1.18). The best way to obtain these is to use the [Haskell platform].
+You will need to have [lp_solve] installed. For building, you will also need
+GHC compiler and cabal-install (preferably at least version 1.18). The best way
+to obtain these is to use the [Haskell platform].
 
 [lp_solve]: http://sourceforge.net/projects/lpsolve/
-[GSL]: http://www.gnu.org/software/gsl/
-[LAPACK]: http://www.netlib.org/lapack/
 [Haskell platform]: http://www.haskell.org/platform/
-
-If you have trouble installing `hmatrix` package, it may be caused by missing
-GSL and/or LAPACK. There is a branch `matrix`, that is based on similarly named
-package, which is slower, less memory efficient, but much easier to install.
 
 To compile the program, clone the repository and run following commands in the
 directory.
