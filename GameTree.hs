@@ -1,7 +1,7 @@
 module GameTree where
 
 import           Control.Arrow                  (first, second)
-import           Data.List                      (foldl', nub)
+import           Data.List                      (foldl')
 import qualified Data.ListTrie.Patricia.Map     as T
 import           Data.ListTrie.Patricia.Map.Ord (TrieMap)
 import qualified Data.Map.Strict                as M
@@ -204,22 +204,8 @@ mkConstraintMatrix :: Player                            -- ^Player we are intere
                    -> TrieMap Act Int                   -- ^This players' actions mapping
                    -> InformationSets (Sequence, [Act]) -- ^All info sets
                    -> SparseMatrix Double
-mkConstraintMatrix p m is = sparseMx $ (1:replicate (len-1) 0) : map toEq sets
+mkConstraintMatrix p m is = ins (fromAssocList $ concat (zipWith toEq [2..] sets)) ((1,1),1)
   where
     sets = filter ((`viewBelongsTo` p) . fst) $ T.toList is
-    len  = 1 + length (nub $ concatMap (snd . snd) sets)
     ml s = fromJust $ T.lookup s m
-    toEq (_k,(s,as)) = mkRow (ml s) (map (ml . (:s)) as)
-
-    mkRow :: Int -> [Int] -> [Double]
-    mkRow x vs = reverse (go [] 1 vs)
-      where
-        go acc n (y:ys)
-            | n > len  = error "This should never happen"
-            | n == x    = go (-1:acc) (n+1) (y:ys)
-            | n == y    = go (1:acc)  (n+1) ys
-            | otherwise = go (0:acc)  (n+1) (y:ys)
-        go acc n []
-            | n >= len  = acc
-            | n == x    = go (-1:acc) (n+1) []
-            | otherwise = go (0:acc)  (n+1) []
+    toEq r (_,(s,as)) = ((r, ml s), -1) : map (\a -> ((r, ml (a:s)), 1.0)) as
