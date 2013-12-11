@@ -40,7 +40,7 @@ constrain :: String -> [[(Double, String)]] -> [Int] -> LinearProgram
 constrain op lhs rhs = ask >>= \h ->
     liftIO $ mapM_ (go h) $ zip lhs rhs
   where
-    go h (l, r) = mapM_ (mult h) l >> hPutStr h op >> hPrint h r >> hPutStrLn h ";"
+    go h (l, r) = mapM_ (mult h) l >> hPutStr h op >> hPutStr h (show r) >> hPutStrLn h ";"
 
 {-# INLINE mult #-}
 mult :: Handle -> (Double, String) -> IO ()
