@@ -8,6 +8,7 @@ module LPSolve ( LinearProgram
 
 import           Control.Monad.Reader
 import           Data.List            (intercalate)
+import           System.Directory     (getTemporaryDirectory)
 import           System.IO
 import           System.Process
 import           Text.Printf
@@ -62,7 +63,8 @@ parse s = (opt, vars)
 --
 lpSolve :: LinearProgram -> IO (Double, [(String, Double)])
 lpSolve prog = do
-    (name,h) <- openTempFile "/tmp" "machacek.lp"
+    dir <- getTemporaryDirectory
+    (name,h) <- openTempFile dir "machacek.lp"
     hPutStrLn stderr $ "Writing linear program to "++name
     runReaderT prog h
     hClose h

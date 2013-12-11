@@ -52,6 +52,7 @@ executable machacek
                      , process >= 1.2 && < 1.3
                      , mtl     >= 2.1 && < 2.2
                      , sparse-lin-alg >= 0.4 && < 0.5
+                     , directory >= 1.2 && < 1.3
 
   -- Directories containing source files.
   -- hs-source-dirs:
