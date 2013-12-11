@@ -45,9 +45,6 @@ executable machacek
   other-modules:       GameTree
                      , LPSolve
 
-  -- LANGUAGE extensions used by modules in this package.
-  default-extensions:  BangPatterns
-
   -- Other library packages from which modules are imported.
   build-depends:       base >=4.5 && <4.7
                      , containers >=0.5 && <0.6
